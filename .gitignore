@@ -1,0 +1,7 @@
+raw-data/sentinel-2/
+raw-data/LULC-Sweden/
+raw-data/Sentinel-2-Shapefile-Index/
+__pycache__/
+.ipynb_checkpoints/
+testing/
+processed-data/TCI_128

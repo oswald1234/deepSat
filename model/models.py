@@ -26,7 +26,9 @@ class UNET(nn.Module):
         
         self.final_conv = nn.Conv2d(64, classes, kernel_size=1)
 
-        
+        #If a nn.Conv2d layer is directly followed by a nn.BatchNorm2d layer, then the bias in the convolution is not needed,
+        #instead use nn.Conv2d(...,bias=False, ....). Bias is not needed because in the first step BatchNorm subtracts the mean,
+        # which effectively cancels out the effect of bias
     def __double_conv(self, in_channels, out_channels):
         conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),

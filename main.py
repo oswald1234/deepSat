@@ -97,7 +97,7 @@ def main():
     parser.add_argument('--seed', type=int, default=1,
                         help='random seed for reproducability (default: 1)', metavar='S')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N')
-    parser.add_argument('--save-model', action='store_true', default=False)
+    parser.add_argument('--save-model', action='store_true', default=True)
     args = parser.parse_args()
 
     # use cuda

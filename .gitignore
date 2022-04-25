@@ -6,4 +6,4 @@ __pycache__/
 testing/
 processed-data/*
 runs/
-deepSat.zip
+train_final.ipynb

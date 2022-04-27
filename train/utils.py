@@ -106,3 +106,18 @@ def weightsWMA(cMats):
 def wma(metricVals,weights):
     metricWMA=np.multiply(weights,metricVals).sum()
     return metricWMA
+
+# Computes min (2 %) & max (98 %) percentile value along column (0) and rows (1)
+# x = Image band (array)
+def minMaxPercentile(x,per=2):
+	minPer = np.percentile(x,per,axis=(0,1))
+	maxPer = np.percentile(x,100-per,axis=(0,1))
+	return minPer,maxPer
+
+# Computes Global Min-Max normalization using specified percentiles.
+# Call on minMaxPercentile() before using this function
+# x = Image band (array)
+# minPer = Min percentile (value)
+# maxPer = Max percentile (value) 
+def normalizeData(x,minPer,maxPer):
+    return (x-minPer)/(maxPer-minPer)

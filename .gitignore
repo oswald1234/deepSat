@@ -7,3 +7,4 @@ testing/
 processed-data/*
 runs/
 train_final.ipynb
+*.zip

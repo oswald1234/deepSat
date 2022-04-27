@@ -19,87 +19,113 @@ from model.models import UNET
 
 from train import train,test
 
-## root to train and validation set
-root = 'processed-data/TCI_256_split/Tidsperiod-1/train'
-rootv = 'processed-data/TCI_256_split/Tidsperiod-1/val'
+# for config 
+import yaml
+#makes dicts nested for nested calls
+import munch
 
 
+def get_conf(path='config.yaml'):
+    with open(path) as file:
+        try:
+            return(munch.munchify(yaml.safe_load(file)))
+        except yaml.YAMLError as exc:
+            print(exc)
+            
+# use this to start with main.py config.yaml
+# need to test functionality before use
+def get_config(file='config.yaml'):
+    p = argparse.ArgumentParser(description='')
+    p.add_argument('config_file', metavar='PATH', nargs='+',
+                   help='path to a configuration file')
+    arg = p.parse_args()
+    
+    
+    with open(file) as yaml_file:
+        try:
+            return(munch.munchify(yaml.safe_load(file)))
+        except yaml.YAMLError as exc:
+            print(exc)
 
+    return munch.munchify(cfg) 
+
+##TODO: make pretty there is probably some function for this in munch or maybe yaml docs
+def print_cfg(cfg):
+    print('\nPyTorch 3D-Unet running on device:', cfg.train.device)
+    print('\nsave-model:',cfg.config.save_model)
+    print('log-interval:',cfg.config.log_intervall)
+    print('seed:',cfg.config.manual_seed)
+    print('learning rate:',cfg.train.lr)
+    print('epochs:', cfg.train.epochs)
+    
+    print('\ntest_kwargs:')
+    for kwarg in cfg.dataset.test.kwargs: print(kwarg,cfg.dataset.test.kwargs[kwarg])
+    print('\ntrain_kwargs:')
+    for kwarg in cfg.dataset.train.kwargs: print(kwarg,cfg.dataset.train.kwargs[kwarg])
+    
+    if cfg.config.dry_run:
+        print(' \n Dry run! (only for testing!)')
+        
 def main():
-    # Training settings
-    parser = argparse.ArgumentParser(description='PyTorch 3D-unet')
-    parser.add_argument('--batch-size', type=int, default=4, metavar='N',
-                        help='input batch size for training (default: 4)')
-    parser.add_argument('--test-batch-size', type=int, default=4,
-                        metavar='N', help='input batch size for testing (default: 4)')
-    parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                        help='number of training epochs (default: 10)')
-    parser.add_argument('--lr', type=float, default=0.001,
-                        metavar='LR', help='learning rate (default: 0.001)')
-    parser.add_argument('--no-cuda', action='store_true',
-                        default=True, help='disables CUDA training')
-    parser.add_argument('--dry-run', action='store_true', default=True)
-    parser.add_argument('--seed', type=int, default=1,
-                        help='random seed for reproducability (default: 1)', metavar='S')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N')
-    parser.add_argument('--save-model', action='store_true', default=True)
-    args = parser.parse_args()
-
-    # use cuda
-    use_cuda = not args.no_cuda and torch.cuda.is_available()
-
-    # seed for reproducability
-    torch.manual_seed(args.seed)
-
-    device = torch.device('cuda' if use_cuda else 'cpu')
-    print('running on device:', device)
-    train_kwargs = {'batch_size': args.batch_size}
-    test_kwargs = {'batch_size': args.test_batch_size}
-
+    # get config
+    cfg = get_conf()
+    
+    
+    use_cuda = not cfg.train.no_cuda and torch.cuda.is_available()
+    cfg.train.device = torch.device('cuda' if use_cuda else 'cpu')
+    #manual seed
+    if cfg.config.manual_seed:
+        torch.manual_seed(cfg.config.seed)
+      
+  
+    
     if use_cuda:
-        cuda_kwargs = {'num_workers': 1,
-                       'pin_memory': True,
-                       'shuffle': True}
-        train_kwargs.update(cuda_kwargs)
-        test_kwargs.update(cuda_kwargs)
-
-    if args.dry_run:
-        print('Dry run! (for testing)')
-
+        cfg.dataset.train.kwargs.update(cfg.cuda_kwargs)
+        cfg.dataset.test.kwargs.update(cfg.cuda_kwargs)
+    
+    print_cfg(cfg)
+    
+    # todo: save cfg
+    
+    
+    # TODO: add augmentation this transform is applied to  both training and validation at the moment
     transform = transforms.Compose([
         transforms.ToTensor()
     ])
 
     # Create datasets for training & validation,
-    training_set = sentinel(root_dir=root, img_transform=transform)
-    validation_set = sentinel(root_dir=rootv, img_transform=transform)
+    training_set = sentinel(root_dir=cfg.dataset.train.root, img_transform=transform, rgb = cfg.dataset.rgb)
+    validation_set = sentinel(root_dir=cfg.dataset.test.root, img_transform=transform, rgb = cfg.dataset.rgb)
 
     # Create data loaders for our datasets; shuffle for training, not for validation
-    training_loader = DataLoader(training_set, **train_kwargs)
-    validation_loader = DataLoader(validation_set, **test_kwargs)
-
+    training_loader = DataLoader(training_set, **cfg.dataset.train.kwargs)
+    validation_loader = DataLoader(validation_set, **cfg.dataset.test.kwargs)
+    
+    # data sample
+    img, labl = iter(training_loader).next()
+    
     # Report split sizes
-    print('Training set has {} instances'.format(len(training_set)))
-    print('Validation set has {} instances'.format(len(validation_set)))
+    print('\nTraining set has {} instances'.format(len(training_set)))
+    print('\nValidation set has {} instances'.format(len(validation_set)))
 
-    model = UNET().to(device)
+    model = UNET(in_channels=img.shape[1]).to(cfg.train.device)
 
-    optimizer = optim.NAdam(model.parameters(), lr=args.lr)
+    optimizer = optim.NAdam(model.parameters(), lr=cfg.train.lr)
 
     loss_fn = nn.CrossEntropyLoss(ignore_index=0)
 
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    writer = SummaryWriter('runs/s2_trainer_{}'.format(timestamp))
+    writer = SummaryWriter('runs/test_run_vm_{}'.format(timestamp))
 
     best_vloss = 1_000_000.
 
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(1, cfg.train.epochs + 1):
 
         # Train one epoch
-        avg_loss = train(args, model, device, training_loader,
+        avg_loss = train(cfg, model, cfg.train.device, training_loader,
                          optimizer, loss_fn, epoch, writer)
         # validate
-        avg_vloss = test(model, device, validation_loader, loss_fn)
+        avg_vloss = test(model, cfg.train.device, validation_loader, loss_fn)
 
         print('LOSS train {} valid {}'.format(avg_loss, avg_vloss))
 
@@ -114,9 +140,13 @@ def main():
         if avg_vloss < best_vloss:
             best_vloss = avg_vloss
             model_path = 'model_{}_{}'.format(timestamp, epoch)
-
+            
+            # only saves models better than previous
             if args.save_model:
                 torch.save(model.state_dict(), model_path)
+                
+                
+        
 
 
 if __name__ == '__main__':

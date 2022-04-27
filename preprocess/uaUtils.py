@@ -1,6 +1,6 @@
 import os
 import glob
-import geopandas as gp
+import geopandas
 
 
     
@@ -17,8 +17,8 @@ def open_fua(path):
     # get layer names (from filename)
     labels,boundary,_ = get_layers(path)
     # open layers
-    fua_labls = gp.read_file(path,layer = labels)
-    fua_boundary = gp.read_file(path,layer=boundary)
+    fua_labls = geopandas.read_file(path,layer = labels)
+    fua_boundary =geopandas.read_file(path,layer=boundary)
     return(fua_labls,fua_boundary)
 
 

@@ -2,10 +2,10 @@ import os
 import glob
 import rioxarray as rio
 import rasterio
-import numpy as np
+import numpy
 
 def get_tile_info(tile_name,sentinel_path):
-	prod,date = search_product(tile_name,sentinel_path)
+	prod,date = search_product(sentinel_path,tile_name)
 	return(get_prod_info(prod[0]))
 
 def get_prod_info(SAFE):
@@ -30,8 +30,8 @@ def get_jp2_path(prod_path,bands):
     
 #takes in tile name and returns products for tile
 #
-def search_product(tile_name,sentinel_path,date = '*'):
-    src = os.path.join(sentinel_path,'S2*_MSIL1C_{}_*_*_T{}_*.SAFE'.format(date,tile_name))
+def search_product(path,tile_name='*',date = '*',ext='tif'):
+    src = os.path.join(path,'S2*_MSIL*_{}_*_*_T{}_*.{}'.format(date,tile_name,ext))
     found_prod = [i for i in glob.glob(src)]
     found_dates = [get_prod_info(product)['sensing_start'] for product in found_prod]
     return((found_prod,found_dates))
@@ -45,10 +45,17 @@ def clip_tile(tile,clip_shape):
              maxy=bounds[3])
     return(patch)
 
-def open_tile(tile_name,sentinel_path,bands='TCI'):
-    prod,date = search_product(tile_name,sentinel_path)
-    src = get_jp2_path(prod[0],bands)[0]
-    with rio.open_rasterio(src,dtype=np.uint8) as rds:
+def open_tile(tile_name,sentinel_path,bands='TCI',ext='tif'):
+    
+    prod,date = search_product(sentinel_path,tile_name)
+    
+    
+    if os.path.splitext(prod[0])[1] == '.SAFE':
+        src = get_jp2_path(prod[0],bands)[0]
+    else:
+        src = prod[0]
+        
+    with rio.open_rasterio(src,dtype=numpy.uint8) as rds:
         rds.name='raw'
         #rds = clip_tile(rds,curr_patch)
         #rds.attrs['type']='TCI'
@@ -58,10 +65,10 @@ def open_tile(tile_name,sentinel_path,bands='TCI'):
     return(rds)
 
 def open_clip_tile(tile_name,curr_patch,sentinel_path,tidsperiod):
-    prod,date = search_product(tile_name,sentinel_path)
+    prod,date = search_product(sentinel_path,tile_name)
     src = get_jp2_path(prod[0],'TCI')[0]
-    #rds = rio.open_rasterio(src,dtype=np.uint8)
-    with rio.open_rasterio(src,dtype=np.uint8) as rds:
+    #rds = rioxarray.open_rasterio(src,dtype=numpy.uint8)
+    with rio.open_rasterio(src,dtype=numpy.uint8) as rds:
         rds = clip_tile(rds,curr_patch)
         rds.attrs['type']='TCI'
         rds = rds.to_dataset('band') #convert to dataset 
@@ -113,7 +120,7 @@ def open_clip_tile(tile_name,curr_patch,sentinel_path,tidsperiod):
 #    with env:
 #        with rasterio.open(tile_path) as src:
 #            with rasterio.vrt.WarpedVRT(src, crs="EPSG:3035",) as vrt:
-#                rds = rio.open_rasterio(vrt,dtype=np.uint16).rio.clip_box(patch.geometry, from_disk=False,all_touched=True)
+#                rds = rio.open_rasterio(vrt,dtype=numpy.uint16).rio.clip_box(patch.geometry, from_disk=False,all_touched=True)
 #    return(rds)
 
 
@@ -127,7 +134,7 @@ def open_clip_tile(tile_name,curr_patch,sentinel_path,tidsperiod):
 #    with env:
 #        with rasterio.open(tile_path) as src:
 #            with rasterio.vrt.WarpedVRT(src, crs="EPSG:3035",) as vrt:
-#                rds = rio.open_rasterio(vrt,dtype=np.uint16,chunks={'x':512,'y':512}).rio.clip_box(
+#                rds = rio.open_rasterio(vrt,dtype=numpy.uint16,chunks={'x':512,'y':512}).rio.clip_box(
 #                    minx=patch.total_bounds[0],
 #                    miny=patch.total_bounds[1],
 #                    maxx=patch.total_bounds[2],

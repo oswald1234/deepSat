@@ -1,0 +1,26 @@
+config:
+  save_model: true
+  dry_run: false
+  log_intervall: 10
+  manual_seed: false
+  seed: 1
+dataset:
+  rgb: false
+  train: 
+    root: processed-data/TCI_256_split/Tidsperiod-1/train
+    kwargs:
+      batch_size: 16
+  test:
+    root: processed-data/TCI_256_split/Tidsperiod-1/val
+    kwargs:
+        batch_size: 16
+train:
+  no_cuda: false
+  epochs: 20
+  lr: 0.001
+cuda_kwargs:
+    num_workers: 1
+    pin_memory: true
+    shuffle: true
+  
+  

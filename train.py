@@ -1,7 +1,7 @@
 import torch
 
 
-def train(args, model, device, train_loader, optimizer, loss_fn, epoch, tb_writer):
+def train(cfg, model, device, train_loader, optimizer, loss_fn, epoch, tb_writer):
 
     running_loss = 0.
     last_loss = 0.
@@ -27,8 +27,8 @@ def train(args, model, device, train_loader, optimizer, loss_fn, epoch, tb_write
 
         # Gather data and report
         running_loss += loss.item()
-        if batch_idx % args.log_interval == 0:
-            last_loss = running_loss/args.log_interval
+        if batch_idx % cfg.config.log_intervall == 0:
+            last_loss = running_loss/cfg.config.log_intervall
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx*len(input), len(train_loader.dataset),
                 100.*batch_idx / len(train_loader), last_loss)
@@ -38,7 +38,7 @@ def train(args, model, device, train_loader, optimizer, loss_fn, epoch, tb_write
             tb_writer.add_scalar('Loss/train', last_loss, tb_x)
             running_loss = 0.
 
-            if args.dry_run:
+            if cfg.config.dry_run:
                 break
 
     return last_loss

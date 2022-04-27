@@ -8,5 +8,5 @@ processed-data/*
 runs/
 train_final.ipynb
 *.zip
-test.py
-test_train.ipynb
+experimental*
+test*

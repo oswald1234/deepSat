@@ -45,36 +45,29 @@ def clip_tile(tile,clip_shape):
              maxy=bounds[3])
     return(patch)
 
-def open_tile(tile_name,sentinel_path,bands='TCI',ext='tif'):
+def open_tile(tile_name,sentinel_path,bands='TCI',ext='tif'): 
     
     prod,date = search_product(sentinel_path,tile_name)
-    
-    
     if os.path.splitext(prod[0])[1] == '.SAFE':
         src = get_jp2_path(prod[0],bands)[0]
     else:
         src = prod[0]
-        
-    with rio.open_rasterio(src,dtype=numpy.uint8) as rds:
+    with rio.open_rasterio(src) as rds:
         rds.name='raw'
-        #rds = clip_tile(rds,curr_patch)
+        return(rds)
+
+#def open_clip_tile(tile_name,curr_patch,sentinel_path,tidsperiod):
+#    prod,date = search_product(sentinel_path,tile_name)
+#    src = get_jp2_path(prod[0],'TCI')[0]
+#    #rds = rioxarray.open_rasterio(src,dtype=numpy.uint8)
+#    with rio.open_rasterio(src,dtype=numpy.uint16) as rds:
+#       #rds = clip_tile(rds,curr_patch)
         #rds.attrs['type']='TCI'
         #rds = rds.to_dataset('band') #convert to dataset 
         #rds=rds.rename({1:'R',2:'G',3:'B'}) #rename variables
         
-    return(rds)
-
-def open_clip_tile(tile_name,curr_patch,sentinel_path,tidsperiod):
-    prod,date = search_product(sentinel_path,tile_name)
-    src = get_jp2_path(prod[0],'TCI')[0]
-    #rds = rioxarray.open_rasterio(src,dtype=numpy.uint8)
-    with rio.open_rasterio(src,dtype=numpy.uint8) as rds:
-        rds = clip_tile(rds,curr_patch)
-        rds.attrs['type']='TCI'
-        rds = rds.to_dataset('band') #convert to dataset 
-        rds=rds.rename({1:'R',2:'G',3:'B'}) #rename variables
-        
-    return(rds)
+#        
+#    return(rds)
 
   
 #s2_folder = os.path.join(sentinel_path,'sentinel-2')   

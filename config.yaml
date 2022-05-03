@@ -8,10 +8,12 @@ dataset:
   rgb: false
   train: 
     root: processed-data/dsen_2_256_split/timeperiod1/train
+    #root: processed-data/TCI_256_split/Tidsperiod-1/train
     kwargs:
       batch_size: 16
   test:
     root: processed-data/dsen_2_256_split/timeperiod1/val
+    #root: processed-data/TCI_256_split/Tidsperiod1/train
     kwargs:
         batch_size: 16
 train:

@@ -1,6 +1,9 @@
 from __future__ import print_function
 import argparse
 from datetime import datetime
+from locale import normalize
+from math import degrees
+from sklearn.preprocessing import KernelCenterer
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -25,6 +28,9 @@ import yaml
 import munch
 
 
+#TODO: save cfg
+
+# get config file "config.yaml"
 def get_conf(path='config.yaml'):
     with open(path) as file:
         try:
@@ -32,7 +38,7 @@ def get_conf(path='config.yaml'):
         except yaml.YAMLError as exc:
             print(exc)
             
-# use this to start with main.py config.yaml
+# use this to start with "main.py --config_file config.yaml" to define wich config file to use 
 def get_config():
     p = argparse.ArgumentParser(description='Path to config file')
     p.add_argument('--config_file', metavar='PATH', default='config.yaml',
@@ -48,7 +54,7 @@ def get_config():
 
     return munch.munchify(cfg) 
 
-##TODO: make pretty there is probably some function for this in munch or maybe yaml docs
+#TODO: make pretty/cleanup, there is probably some function for this in munch or maybe yaml docs
 def print_cfg(cfg):
     print('\nPyTorch 3D-Unet running on device:', cfg.train.device)
     print('\nsave-model:',cfg.config.save_model)
@@ -66,35 +72,55 @@ def print_cfg(cfg):
         print(' \n Dry run! (only for testing!)')
         
 def main():
-    # get config
+    # get config file
     cfg = get_conf()
     
-    
+    # if use_cuda = TRUE,  if cuda (GPU) is available and config no_cuda = false  
     use_cuda = not cfg.train.no_cuda and torch.cuda.is_available()
     cfg.train.device = torch.device('cuda' if use_cuda else 'cpu')
+
     #manual seed
     if cfg.config.manual_seed:
         torch.manual_seed(cfg.config.seed)
       
   
-    
+    # if use_cuda => use cuda_kwargs 
     if use_cuda:
         cfg.dataset.train.kwargs.update(cfg.cuda_kwargs)
         cfg.dataset.test.kwargs.update(cfg.cuda_kwargs)
     
     print_cfg(cfg)
     
-    # todo: save cfg
-    
-    
-    # TODO: add augmentation this transform is applied to  both training and validation at the moment
-    transform = transforms.Compose([
-        transforms.ToTensor()
+    #img_labl_transforms define random flips/rot to apply on both img and labl with prob p
+    imlab_transforms = transforms.Compose([
+        transforms.RandomApply(torch.nn.ModuleList([
+            transforms.RandomVerticalFlip(),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(degrees=90)
+            ]),p=0.4)
+    ]) 
+
+    #TODO: add real std and mean values
+    normalize = transforms.Normalize(
+            std=[427.1248, 337.7532, 305.9428, 944.7454, 437.4391, 711.1324, 889.7389,959.4146, 727.0137, 625.2451],
+            mean=[1,1,1,1,1,1,1,1,1,1]
+            )
+
+    # img_transforms define transforms to apply on img only
+    # Random Apply Define random augmentations to apply on img with prob p:
+    img_transforms = transforms.Compose([
+        transforms.RandomApply(torch.nn.ModuleList([
+            transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),
+            transforms.ColorJitter()
+            ]),p=0.4),
+        normalize
     ])
 
+   
+
     # Create datasets for training & validation,
-    training_set = sentinel(root_dir=cfg.dataset.train.root, img_transform=transform, rgb = cfg.dataset.rgb)
-    validation_set = sentinel(root_dir=cfg.dataset.test.root, img_transform=transform, rgb = cfg.dataset.rgb)
+    training_set = sentinel(root_dir=cfg.dataset.train.root, img_transform=img_transforms,transforms=imlab_transforms, rgb = cfg.dataset.rgb)
+    validation_set = sentinel(root_dir=cfg.dataset.test.root, img_transform=normalize, rgb = cfg.dataset.rgb)
 
     # Create data loaders for our datasets; shuffle for training, not for validation
     training_loader = DataLoader(training_set, **cfg.dataset.train.kwargs)

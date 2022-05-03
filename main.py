@@ -108,6 +108,7 @@ def main():
 
     # img_transforms define transforms to apply on img only
     # Random Apply Define random augmentations to apply on img with prob p:
+    #TODO: see kernel_size and sigma used in kth-exjobb
     img_transforms = transforms.Compose([
         transforms.RandomApply(torch.nn.ModuleList([
             transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 5)),

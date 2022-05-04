@@ -128,8 +128,8 @@ def main():
     validation_loader = DataLoader(validation_set, **cfg.dataset.test.kwargs)
 
     # Report split sizes 
-        print('\nTraining set has {} instances'.format(len(training_set)))
-        print('\nValidation set has {} instances'.format(len(validation_set)))    
+    print('\nTraining set has {} instances'.format(len(training_set)))
+    print('\nValidation set has {} instances'.format(len(validation_set)))    
     
     # batch sample
     img, labl = iter(training_loader).next()

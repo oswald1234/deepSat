@@ -74,7 +74,7 @@ def print_cfg(cfg):
 def main():
     # get config file
     cfg = get_conf()
-    
+
     # if use_cuda = TRUE,  if cuda (GPU) is available and config no_cuda = false  
     use_cuda = not cfg.train.no_cuda and torch.cuda.is_available()
     cfg.train.device = torch.device('cuda' if use_cuda else 'cpu')
@@ -126,13 +126,15 @@ def main():
     # Create data loaders for our datasets; shuffle for training, not for validation
     training_loader = DataLoader(training_set, **cfg.dataset.train.kwargs)
     validation_loader = DataLoader(validation_set, **cfg.dataset.test.kwargs)
+
+    # Report split sizes 
+        print('\nTraining set has {} instances'.format(len(training_set)))
+        print('\nValidation set has {} instances'.format(len(validation_set)))    
     
-    # data sample
+    # batch sample
     img, labl = iter(training_loader).next()
     
-    # Report split sizes
-    print('\nTraining set has {} instances'.format(len(training_set)))
-    print('\nValidation set has {} instances'.format(len(validation_set)))
+
 
     model = UNET(in_channels=img.shape[1]).to(cfg.train.device)
 
@@ -140,6 +142,7 @@ def main():
 
     loss_fn = nn.CrossEntropyLoss(ignore_index=0)
 
+    #writer is for tensorboard
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     writer = SummaryWriter('runs/test_run_vm_{}'.format(timestamp))
 
@@ -167,7 +170,7 @@ def main():
             best_vloss = avg_vloss
             model_path = 'model_{}_{}'.format(timestamp, epoch)
             
-            # only saves models better than previous
+            # only saves models better than previous (when indented)
             if cfg.config.save_model:
                 torch.save(model.state_dict(), model_path)
                 

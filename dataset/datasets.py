@@ -40,7 +40,8 @@ class sentinel(Dataset):
                 self.transforms(cube)
 
             # separate img and label
-            labl = torch.tensor(cube[-1,:,:],dtype=torch.long)
+            #labl = torch.tensor(cube[-1,:,:].clone().detach(),dtype=torch.long)
+            labl = cube[-1,:,:].type(torch.LongTensor)
             img = cube[0:-1,:,:]
 
             # do transformations applied on img only:
@@ -97,4 +98,4 @@ class s2stats(Dataset):
 
     def __getitem__(self, idx):
         img = self.open_h5(self.patch_files[idx])
-        return (img.type(torch.float32))
+        return (img.type(torch.float64))

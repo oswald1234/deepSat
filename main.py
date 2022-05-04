@@ -54,12 +54,15 @@ def get_config():
 
     return munch.munchify(cfg) 
 
+
 #TODO: make pretty/cleanup, there is probably some function for this in munch or maybe yaml docs
 def print_cfg(cfg):
+   
     print('\nPyTorch 3D-Unet running on device:', cfg.train.device)
     print('\nsave-model:',cfg.config.save_model)
     print('log-interval:',cfg.config.log_intervall)
-    print('seed:',cfg.config.manual_seed)
+    if cfg.config.manual_seed:
+        print('seed:',cfg.config.seed)
     print('learning rate:',cfg.train.lr)
     print('epochs:', cfg.train.epochs)
     
@@ -74,8 +77,9 @@ def print_cfg(cfg):
 def main():
     # get config file
     cfg = get_conf()
+    
 
-    # if use_cuda = TRUE,  if cuda (GPU) is available and config no_cuda = false  
+    # if use_cuda = TRUE, if cuda (GPU) is available and config no_cuda = false  
     use_cuda = not cfg.train.no_cuda and torch.cuda.is_available()
     cfg.train.device = torch.device('cuda' if use_cuda else 'cpu')
 

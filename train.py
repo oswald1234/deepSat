@@ -1,10 +1,11 @@
 import torch
 
-
+# train one epoch
 def train(cfg, model, device, train_loader, optimizer, loss_fn, epoch, tb_writer):
 
     running_loss = 0.
     last_loss = 0.
+    ninstances =0
     model.train(True)
 
     for idx, (input, target) in enumerate(train_loader):
@@ -27,21 +28,25 @@ def train(cfg, model, device, train_loader, optimizer, loss_fn, epoch, tb_writer
 
         # Gather data and report
         running_loss += loss.item()
+        # number of training imgs
+        ninstances += input.shape[0]
+
+        # report (epoch loss) every log_intervall 
         if batch_idx % cfg.config.log_intervall == 0:
-            last_loss = running_loss/cfg.config.log_intervall
+            last_loss = running_loss/ninstances
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx*len(input), len(train_loader.dataset),
                 100.*batch_idx / len(train_loader), last_loss)
             )
             # Report to tensor board
-            tb_x = (epoch-1) * len(train_loader) + batch_idx*len(input)
-            tb_writer.add_scalar('Loss/train', last_loss, tb_x)
-            running_loss = 0.
+            tb_x = (epoch-1) * len(train_loader) + ninstances    # x value
+            tb_writer.add_scalar('Loss/train', last_loss, tb_x) 
+            
 
             if cfg.config.dry_run:
                 break
 
-    return last_loss
+    return running_loss/ninstances #epoch mean
 
 
 def test(model, device, validation_loader, loss_fn):
@@ -52,8 +57,15 @@ def test(model, device, validation_loader, loss_fn):
         for vinputs, vtarget in validation_loader:
             vinputs, vtarget = vinputs.to(device), vtarget.to(device)
             voutputs = model(vinputs)
+            
+            # validation loss
             vloss = loss_fn(voutputs, vtarget)
             running_vloss += vloss
+
+            # prediction
+            pred = torch.nn.functional.softmax(voutputs,dim=1)
+            pred = torch.argmax(pred,dim=1)
+
 
     avg_vloss = running_vloss / (len(validation_loader.dataset))
     return avg_vloss

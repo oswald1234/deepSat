@@ -105,10 +105,31 @@ def main():
     ]) 
 
     #TODO: add real std and mean values
-    normalize = transforms.Normalize(
-            std=[427.1248, 337.7532, 305.9428, 944.7454, 437.4391, 711.1324, 889.7389,959.4146, 727.0137, 625.2451],
-            mean=[1,1,1,1,1,1,1,1,1,1]
-            )
+    #normalize = transforms.Normalize(
+    #        std=[427.1248, 337.7532, 305.9428, 944.7454, 437.4391, 711.1324, 889.7389,959.4146, 727.0137, 625.2451],
+    #        mean=[1,1,1,1,1,1,1,1,1,1]
+    #        )
+
+    # Percentile Min-Max normalization in range [a,b]
+    # minPer = Min percentile (scalar or tensor)
+    # maxPer = Max percentile (scalar or tensor)
+    # a      = Min range (value)
+    # b      = Max range (value)
+    class pNormalize(object):
+    
+        def __init__(self,minPer,maxPer,a,b):
+            self.minPer = minPer
+            self.maxPer = maxPer
+            self.a = a
+            self.b = b
+        
+        def __call__(self,sample):    
+            sample = torch.where((sample > self.minPer) & (sample < self.maxPer),sample,0.)
+            minV = torch.min(sample)
+            maxV = torch.max(sample)
+            norm = self.a + ((sample-minV)*(self.b-self.a))/(maxV-minV)
+            
+            return norm
 
     # img_transforms define transforms to apply on img only
     # Random Apply Define random augmentations to apply on img with prob p:

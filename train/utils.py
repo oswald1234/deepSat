@@ -83,14 +83,6 @@ def minMaxPercentile(x,per=2):
 	maxPer = np.percentile(x,100-per,axis=(0,1))
 	return minPer,maxPer
 
-# Computes Global Min-Max normalization using specified percentiles.
-# Call on minMaxPercentile() before using this function
-# x = Image band (array)
-# minPer = Min percentile (value)
-# maxPer = Max percentile (value) 
-def normalizeData(x,minPer,maxPer):
-    return (x-minPer)/(maxPer-minPer)
-
 # trainiter = iter(DataLoader(dataset))
 # c         = 27 (number of classes including unclassified class)
 def weights(trainiter,c=27):

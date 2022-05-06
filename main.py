@@ -110,11 +110,23 @@ def main():
     #        mean=[1,1,1,1,1,1,1,1,1,1]
     #        )
 
+    # TODO: Is it necessary for feature norm to be exactly in the
+    #       range [-1,1] as batch norm? Most norms does not result in an exact range.
+    #       
+    #       Another nrom-approach dealing with outliers is
+    #       robust data scaling: value = (value-median)/(maxPer-minPer)
+    #       https://machinelearningmastery.com/robust-scaler-transforms-for-machine-learning/
+    #       https://github.com/christianversloot/machine-learning-articles/blob/main/python-feature-scaling-with-outliers-in-your-dataset.md
+    # 
+    #       Different scaling approaches:
+    #       https://scikit-learn.org/stable/auto_examples/preprocessing/plot_all_scaling.html
+
     # Percentile Min-Max normalization in range [a,b]
     # minPer = Min percentile (scalar or tensor)
     # maxPer = Max percentile (scalar or tensor)
-    # a      = Min range (value)
-    # b      = Max range (value)
+    # a      = Min range (scalar)
+    # b      = Max range (scalar)
+
     class pNormalize(object):
     
         def __init__(self,minPer,maxPer,a,b):
@@ -123,12 +135,16 @@ def main():
             self.a = a
             self.b = b
         
-        def __call__(self,sample):    
-            sample = torch.where((sample > self.minPer) & (sample < self.maxPer),sample,0.)
-            minV = torch.min(sample)
-            maxV = torch.max(sample)
-            norm = self.a + ((sample-minV)*(self.b-self.a))/(maxV-minV)
+        def __call__(self,sample):
+            # This code block will result in [a,b] norm, however extreme values are removed    
+            #sample = torch.where((sample > self.minPer) & (sample < self.maxPer),sample,0.)
+            #minV = torch.min(sample)
+            #maxV = torch.max(sample)
+            #norm = self.a + ((sample-minV)*(self.b-self.a))/(maxV-minV)
             
+            # Original approach according to https://github.com/charlotte-pel/temporalCNN
+            norm = (sample-self.minPer)/(self.maxPer-self.minPer)
+
             return norm
 
     # img_transforms define transforms to apply on img only
@@ -141,8 +157,6 @@ def main():
             ]),p=0.4),
         normalize
     ])
-
-   
 
     # Create datasets for training & validation,
     training_set = sentinel(root_dir=cfg.dataset.train.root, img_transform=img_transforms,transforms=imlab_transforms, rgb = cfg.dataset.rgb)

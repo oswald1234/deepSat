@@ -103,3 +103,7 @@ class s2stats(Dataset):
     def __getitem__(self, idx):
         img = self.open_h5(self.patch_files[idx])
         return (img,self.patch_files[idx])
+    
+    
+
+    

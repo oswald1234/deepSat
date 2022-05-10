@@ -86,28 +86,6 @@ def test(cfg,model, device, validation_loader, loss_fn):
 
     return avg_vloss
 
-    
-########### Transformations ############# 
-
-# Global percentile Min-Max normalization, better known as RobustScaler
-# Less sensitive to outliers than traditional Min-Max normalization
-# https://medium.com/@kesarimohan87/data-preprocessing-6c87d27156
-# https://www.geeksforgeeks.org/feature-scaling-part-3
-# minPer = Min percentile (scalar or tensor)
-# maxPer = Max percentile (scalar or tensor)
-# Sample = Image patch
-
-class pNormalize(object):
-    
-    def __init__(self,minPer,maxPer):
-        self.minPer = minPer
-        self.maxPer = maxPer
-        
-    def __call__(self,sample):
-        
-        # According to https://github.com/charlotte-pel/temporalCNN
-        norm = (sample-self.minPer[:,None,None])/(self.maxPer[:,None,None]-self.minPer[:,None,None])
-        return norm
 
     
     

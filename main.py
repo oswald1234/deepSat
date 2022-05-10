@@ -18,10 +18,11 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 from dataset.datasets import sentinel
+from dataset.utils import pNormalize
 from model.models import UNET
 import numpy as np
 
-from train.utils import train,test,pNormalize,get_conf,get_config,print_cfg
+from train.utils import train, test, get_conf, get_config, print_cfg
 
 from tqdm import tqdm
 
@@ -38,7 +39,6 @@ def main():
     # get config file
     cfg = get_conf()
     
-
     # if use_cuda = TRUE, if cuda (GPU) is available and config no_cuda = false  
     use_cuda = not cfg.train.no_cuda and torch.cuda.is_available()
     cfg.train.device = torch.device('cuda' if use_cuda else 'cpu')

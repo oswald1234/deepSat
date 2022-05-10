@@ -35,12 +35,8 @@ def weights(trainiter,c=27):
                 class_weights_sample[i][j] = torch.max(n_classes_sample[i])/n_classes_sample[i][j]
 
                 ################ Weights wrt dataset
-    
-    #class_weights_dataset=n_classes_dataset/n_classes_dataset.sum()
-    
+                
     # Set class weight = 0 for label = 0
-    #class_weights_dataset[0] = 0
-    
     # Inf control. Init torch.zero not actually "zero"
     for i, count in enumerate(n_classes_dataset):
         if i == 0:
@@ -53,15 +49,15 @@ def weights(trainiter,c=27):
 
 ########### Transformations ############# 
 
-# Global percentile Min-Max normalization, better known as RobustScaler
-# Less sensitive to outliers than traditional Min-Max normalization
-# https://medium.com/@kesarimohan87/data-preprocessing-6c87d27156
-# https://www.geeksforgeeks.org/feature-scaling-part-3
-# minPer = Min percentile (scalar or tensor)
-# maxPer = Max percentile (scalar or tensor)
-# Sample = Image patch
-# not working
-class pNormalize_new(object):
+    # Global percentile Min-Max normalization, better known as RobustScaler
+    # Less sensitive to outliers than traditional Min-Max normalization
+    # https://medium.com/@kesarimohan87/data-preprocessing-6c87d27156
+    # https://www.geeksforgeeks.org/feature-scaling-part-3
+    # minPer = Min percentile (scalar or tensor)
+    # maxPer = Max percentile (scalar or tensor)
+    # Sample = Image patch tensor ([batch_size, channels, H,W]
+    
+class pNormalize(object):
     
     def __init__(self,minPer,maxPer):
         self.minPer = minPer
@@ -73,16 +69,8 @@ class pNormalize_new(object):
         sample = sample.transpose(1,3)
         norm = (sample-self.minPer)/(self.maxPer-self.minPer)
         norm = norm.transpose(3,1)
-        return norm
-
-class pNormalize(object):
-    
-    def __init__(self,minPer,maxPer):
-        self.minPer = minPer
-        self.maxPer = maxPer
         
-    def __call__(self,sample):
+        # Above is easier to read
+        # norm = (sample-self.minPer[:,None,None])/(self.maxPer[:,None,None]-self.minPer[:,None,None])
         
-        # According to https://github.com/charlotte-pel/temporalCNN
-        norm = (sample-self.minPer[:,None,None])/(self.maxPer[:,None,None]-self.minPer[:,None,None])
         return norm

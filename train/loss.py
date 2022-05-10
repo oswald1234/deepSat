@@ -9,8 +9,8 @@ import torch.nn as nn
 # beta    = Scalar (>= 0)
 # smooth  = Smoothing factor, scalar (have seen 1e-6 and 1 used as values)
 
-# alfa = beta = 1   = Tanimoto coefficient
-# alfa = beta = 0.5 = Sørensen–Dice coefficient
+# alpha = beta = 1   = Tanimoto coefficient
+# alpha = beta = 0.5 = Sørensen–Dice coefficient
 
 def tverskyIndex(inputs, targets, smooth=1, alpha=0.7, beta=0.3):
     
@@ -51,7 +51,7 @@ def tverskyIndex(inputs, targets, smooth=1, alpha=0.7, beta=0.3):
 # targets = y_true, tensor(B,C,H,W), B = Batch Size, C = Classes, H = Height, W = Width
 # alpha   = Scalar (>= 0)
 # beta    = Scalar (>= 0)
-# gamma   = Scalar (>= 0)
+# gamma   = Scalar [1,3]
 # smooth  = Smoothing factor, scalar (have seen 1e-6 and 1 used as values)
 
 class focalTverskyLoss(nn.Module):

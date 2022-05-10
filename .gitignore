@@ -8,5 +8,6 @@ processed-data/*
 runs/
 train_final.ipynb
 *.zip
+*.zip.part
 experimental*
 test*

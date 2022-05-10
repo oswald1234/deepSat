@@ -30,8 +30,13 @@ def get_jp2_path(prod_path,bands):
     
 #takes in tile name and returns products for tile
 #
-def search_product(path,tile_name='*',date = '*',ext='tif'):
-    src = os.path.join(path,'S2*_MSIL*_{}_*_*_T{}_*.{}'.format(date,tile_name,ext))
+def search_product(path,tile_name='*',source='*',date = '*',ext='tif'):
+    
+    if not source =='*':
+        source = '*_'+source
+        
+    src = os.path.join(path,'S2*_MSIL*_{}_*_*_T{}_{}.{}'.format(date,tile_name,source,ext))
+
     found_prod = [i for i in glob.glob(src)]
     found_dates = [get_prod_info(product)['sensing_start'] for product in found_prod]
     return((found_prod,found_dates))
@@ -45,9 +50,9 @@ def clip_tile(tile,clip_shape):
              maxy=bounds[3])
     return(patch)
 
-def open_tile(tile_name,sentinel_path,bands='TCI',ext='tif'): 
+def open_tile(tile_name,sentinel_path,source='*',bands='TCI',ext='tif'): 
     
-    prod,date = search_product(sentinel_path,tile_name)
+    prod,date = search_product(sentinel_path,tile_name=tile_name,source=source,ext=ext)
     if os.path.splitext(prod[0])[1] == '.SAFE':
         src = get_jp2_path(prod[0],bands)[0]
     else:

@@ -55,7 +55,7 @@ def weights(trainiter,c=27):
     # https://www.geeksforgeeks.org/feature-scaling-part-3
     # minPer = Min percentile (scalar or tensor)
     # maxPer = Max percentile (scalar or tensor)
-    # Sample = Image patch tensor ([batch_size, channels, H,W]
+    # Sample = Image patch tensor ([channels, H,W])
     
 class pNormalize(object):
     
@@ -66,9 +66,9 @@ class pNormalize(object):
     def __call__(self,sample):
             
         # According to https://github.com/charlotte-pel/temporalCNN
-        sample = sample.transpose(1,3)
+        sample = sample.permute(2,1,0)
         norm = (sample-self.minPer)/(self.maxPer-self.minPer)
-        norm = norm.transpose(3,1)
+        norm = norm.permute(2,1,0)
         
         # Above is easier to read
         # norm = (sample-self.minPer[:,None,None])/(self.maxPer[:,None,None]-self.minPer[:,None,None])

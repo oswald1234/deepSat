@@ -1,21 +1,21 @@
 config:
   save_model: true
-  dry_run: false
-  log_intervall: 10
+  dry_run: true
+  log_intervall: 5
   manual_seed: false
   seed: 1
 dataset:
   rgb: false
   train: 
-    root: processed-data/dsen_2_256_split/timeperiod1/train
-    #root: processed-data/TCI_256_split/Tidsperiod-1/train
+    root: processed-data/dsen_2_256_new_split/timeperiod1/train
     kwargs:
-      batch_size: 16
+        batch_size: 10
+        shuffle: true
   test:
-    root: processed-data/dsen_2_256_split/timeperiod1/val
-    #root: processed-data/TCI_256_split/Tidsperiod1/train
+    root: processed-data/dsen_2_256_new_split/timeperiod1/val
     kwargs:
-        batch_size: 16
+        batch_size: 10
+        shuffle: true
 train:
   no_cuda: false
   epochs: 20
@@ -23,6 +23,5 @@ train:
 cuda_kwargs:
     num_workers: 1
     pin_memory: true
-    shuffle: true
   
   

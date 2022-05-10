@@ -6,10 +6,6 @@ import torch
 import numpy as np
 
 
-def isinf(tensor):
-    return(torch.any(torch.isinf(tensor)).item())
-
-    
 # train one epoch
 def train(cfg, model, device, train_loader, optimizer, loss_fn, epoch, tb_writer):
 
@@ -41,7 +37,7 @@ def train(cfg, model, device, train_loader, optimizer, loss_fn, epoch, tb_writer
         # number of training imgs
         ninstances += 1
         if cfg.config.dry_run:
-            print('Loss:', round(loss.item(),2),inp.shape,'| isinf:',isinf(inp),'| min-max (all bands):' ,(inp.min().cpu().numpy().item(),inp.max().cpu().numpy().item()))
+            dryprint(loss,inp)
 
         # report (epoch loss) every log_intervall 
         if batch_idx % cfg.config.log_intervall == 0:
@@ -90,6 +86,44 @@ def test(cfg,model, device, validation_loader, loss_fn):
 
     return avg_vloss
 
+    
+########### Transformations ############# 
+
+# Global percentile Min-Max normalization, better known as RobustScaler
+# Less sensitive to outliers than traditional Min-Max normalization
+# https://medium.com/@kesarimohan87/data-preprocessing-6c87d27156
+# https://www.geeksforgeeks.org/feature-scaling-part-3
+# minPer = Min percentile (scalar or tensor)
+# maxPer = Max percentile (scalar or tensor)
+# Sample = Image patch
+
+class pNormalize(object):
+    
+    def __init__(self,minPer,maxPer):
+        self.minPer = minPer
+        self.maxPer = maxPer
+        
+    def __call__(self,sample):
+        
+        # According to https://github.com/charlotte-pel/temporalCNN
+        norm = (sample-self.minPer[:,None,None])/(self.maxPer[:,None,None]-self.minPer[:,None,None])
+        return norm
+
+    
+    
+    
+    
+########### helper functions ############# 
+
+# check if tensor contains inf values
+def isinf(tensor):
+    return(torch.any(torch.isinf(tensor)).item())
+
+def dryprint(loss,inp):
+    maxv=round(inp.max().cpu().numpy().item(),2)
+    minv=round(inp.min().cpu().numpy().item(),2)
+    loss=round(loss.item(),2)
+    print('Loss:', loss, inp.shape, '| isinf:',isinf(inp),'| min-max (all bands):',(minv,maxv))
 
 # get config file "config.yaml"
 def get_conf(path='config.yaml'):
@@ -115,7 +149,7 @@ def get_config():
 
     return munch.munchify(cfg) 
 
-
+# print config
 #TODO: make pretty/cleanup, there is probably some function for this in munch or maybe yaml docs
 def print_cfg(cfg):
    

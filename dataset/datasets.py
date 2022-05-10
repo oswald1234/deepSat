@@ -1,36 +1,50 @@
 import h5py
 import os
 import glob
-from matplotlib.font_manager import ttfFontProperty
 import numpy as np
 import torch
-import torch.nn as nn
-from torchvision.transforms import functional as tvF
 from torch.utils.data import Dataset
 
 
+#('B4 (665 nm)',
+# 'B3 (560 nm)',
+# 'B2 (490 nm)',
+# 'B8 (842 nm)',
+# 'SRB5 (705 nm)',
+# 'SRB6 (740 nm)',
+# 'SRB7 (783 nm)',
+# 'SRB8A (865 nm)',
+# 'SRB11 (1610 nm)',
+# 'SRB12 (2190 nm)')
 
+   
+    
 class sentinel(Dataset):
 
     @staticmethod
     # stack image and label to make transforms on both at same time
-    def make_cube(h5):
-        labl = h5['train_id'][:,:]
-        raw = h5['raw'][:,:,:]
+    def make_cube(raw,labl):
+        
         if raw.shape[0]>raw.shape[2]:
-            raw = np.moveaxis(raw,0,-1)
-        shape = raw.shape
-        cube = np.zeros(shape=(shape[0]+1,shape[1],shape[2]))
-        cube[0:-1,:,:]= raw
-        cube[-1,:,:]=labl
-        return(torch.from_numpy(cube))
+            raw=np.moveaxis(raw,0,-1)
+        
+        labl = torch.unsqueeze(labl,dim=0)
+        cube =torch.cat((raw,labl),0)
+        
+        return(cube)
         
     
     @staticmethod 
-    def open_h5(self,path,rgb = False):
-        with h5py.File(path, 'r') as h5:
-            #print(h5.keys())
-            return(self.make_cube(h5))
+    def open_h5(self,idx):
+        with h5py.File(self.patch_files[idx], 'r') as h5:
+            labl = torch.from_numpy(h5['train_id'][:,:].astype('float32'))
+            
+            if self.rgb:
+                raw = torch.tensor(h5['raw'][1:4,:,:],dtype=torch.float32)
+            else:
+                raw = torch.tensor(h5['raw'][:,:,:],dtype=torch.float32)
+            return(self.make_cube(raw,labl))
+          
     
     @staticmethod
     # Apply transformations on cube (images and labels) and on images
@@ -40,24 +54,19 @@ class sentinel(Dataset):
                 self.transforms(cube)
 
             # separate img and label
-            #labl = torch.tensor(cube[-1,:,:].clone().detach(),dtype=torch.long)
-            labl = cube[-1,:,:].type(torch.LongTensor)
-            img = cube[0:-1,:,:]
+            raw = cube[0:-1,:,:].clone().detach()
+            labl = cube[-1,:,:].clone().detach()
+            labl=labl.long()
 
             # do transformations applied on img only:
             if self.img_transform:
-                img = self.img_transform(img)
-
-            # TODO: return RGB chanells only     
-            #if self.rgb:
-            #   img=img[0:2]
+                raw = self.img_transform(raw)
            
-            return(img,labl)
+            return(raw,labl)
     
-    def __init__(self,transforms=None, img_transform=None,padding=None,root_dir=None, ext='*.nc',rgb=False):
+    def __init__(self,transforms=None, img_transform=None,root_dir=None, ext='*.nc',rgb=False):
         self.root_dir = root_dir #dataset dir
         self.patch_files = glob.glob(os.path.join(self.root_dir, ext))
-        self.padding = padding
         self.img_transform = img_transform
         self.transforms = transforms
         self.rgb = rgb
@@ -68,24 +77,19 @@ class sentinel(Dataset):
 
     # getitem of dataset 
     def __getitem__(self, idx):
-        cube = self.open_h5(self, self.patch_files[idx], self.rgb)
-        x,y = self.transform(self,cube)
-            
-        if self.padding:
-            pad = nn.ZeroPad2d(self.padding)
-            x = pad(x)
-            y= pad(y)
+        cube = self.open_h5(self,idx)
+        raw,labl = self.transform(self,cube)
 
-
-        return (x.float(),y) #torch.shape[10,256,256] and [256,256]
-
+        return (raw,labl) 
     
+
 class s2stats(Dataset):
     
     @staticmethod 
     def open_h5(path,rgb = False):
         with h5py.File(path, 'r') as h5:
-            img =torch.from_numpy(h5['raw'][:,:,:])   
+            img =torch.from_numpy(h5['raw'][:,:,:])
+          
             return(img)
         
     
@@ -98,4 +102,4 @@ class s2stats(Dataset):
 
     def __getitem__(self, idx):
         img = self.open_h5(self.patch_files[idx])
-        return (img.type(torch.float64))
+        return (img,self.patch_files[idx])

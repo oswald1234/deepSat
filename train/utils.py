@@ -4,6 +4,7 @@ import yaml
 import munch
 import torch
 import numpy as np
+from tqdm import tqdm
 
 
 # train one epoch
@@ -11,11 +12,14 @@ def train(cfg, model, device, train_loader, optimizer, loss_fn, epoch, tb_writer
 
     running_loss = 0.
     last_loss = 0.
-    ninstances =0
+    batch_idx = 0
     model.train(True)
+    ninstances = len(train_loader.dataset)
+    #train_loader = tqdm(train_loader, desc='Batch')
+    log_intervall = cfg.config.log_intervall if cfg.config.log_intervall != 0 else 99999
 
-    for idx, (inp, target) in enumerate(train_loader):
-        batch_idx = idx + 1
+    for inp, target in train_loader:
+        batch_idx += 1
         # Every data instance is an input (X) + target (y) pair
         inp, target = inp.to(device), target.to(device)
 
@@ -35,32 +39,32 @@ def train(cfg, model, device, train_loader, optimizer, loss_fn, epoch, tb_writer
         # Gather data and report
         running_loss += loss.item()
         # number of training imgs
-        ninstances += 1
-        if cfg.config.dry_run:
-            dryprint(loss,inp)
-
+   
+        #if cfg.config.dry_run:
+        #    dryprint(loss,inp)
+      
         # report (epoch loss) every log_intervall 
-        if batch_idx % cfg.config.log_intervall == 0:
-            last_loss = running_loss/ninstances
-            #print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-            #    epoch, batch_idx*len(inp), len(train_loader.iterable.dataset),
-            #    100.*batch_idx*len(inp) / len(train_loader.iterable.dataset), last_loss)
-            #)
+        if batch_idx % log_intervall == 0:
+            last_loss = running_loss/batch_idx
+            print('Train Epoch: {}/{} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(
+                epoch,cfg.train.epochs, batch_idx*len(inp), ninstances,
+                100.*batch_idx*len(inp) / ninstances, last_loss)
+            )
             # Report to tensor board
-            tb_x = (epoch-1) * len(train_loader) + ninstances    # x value
-            tb_writer.add_scalar('Loss/train', last_loss, tb_x) 
+            #tb_x = (epoch-1) * len(train_loader) + batch_idx    # x value
+            #tb_writer.add_scalar('Loss/train', last_loss, tb_x) 
             
 
-            #if cfg.config.dry_run:
-                #break
+            if cfg.config.dry_run:
+                break
 
-    return running_loss/ninstances #epoch mean
+    return running_loss/batch_idx #epoch mean
 
 
 def test(cfg,model, device, validation_loader, loss_fn):
     model.eval()
     running_vloss = 0.
-    ninstance= 0.
+    batch_idx= 0.
     
     with torch.no_grad():
         for vinputs, vtarget in validation_loader:
@@ -69,22 +73,22 @@ def test(cfg,model, device, validation_loader, loss_fn):
             
             # validation loss
             vloss = loss_fn(voutputs, vtarget)
-            if not np.isnan(vloss.item()):
-                running_vloss += vloss.item()
-                #number of instances
-                ninstance += 1
+           
+            running_vloss += vloss.item()
+               
+            batch_idx += 1
                 
-            if cfg.config.dry_run:
-                print('V_loss:', round(vloss.item(),2),'shape:',vinputs.shape)
+            #if cfg.config.dry_run:
+            #    print('V_loss:', round(vloss.item(),2),'shape:',vinputs.shape)
                 
                 
             # prediction
             #pred = torch.nn.functional.softmax(voutputs,dim=1)
             #pred = torch.argmax(pred,dim=1)
             
-    avg_vloss = running_vloss / ninstance
+    avg_vloss = running_vloss / batch_idx
 
-    return avg_vloss
+    return avg_vloss 
 
 
     
@@ -130,19 +134,31 @@ def get_config():
 # print config
 #TODO: make pretty/cleanup, there is probably some function for this in munch or maybe yaml docs
 def print_cfg(cfg):
-   
-    print('\nPyTorch 3D-Unet running on device:', cfg.train.device)
-    print('\nsave-model:',cfg.config.save_model)
-    print('log-interval:',cfg.config.log_intervall)
-    if cfg.config.manual_seed:
-        print('seed:',cfg.config.seed)
-    print('learning rate:',cfg.train.lr)
-    print('epochs:', cfg.train.epochs)
+    #from pprint import pprint
+    #pprint(munch.unmunchify(cfg))
+    for conf in cfg:
+        print('\v',conf)
+        for key in cfg[conf]:
+            if key.__contains__('kwargs'):
+                print('  ',key)
+                for kwarg in cfg[conf][key]:
+                    print('      ',kwarg,'\t',cfg[conf][key][kwarg])
+            else:
+                print('    ',key,'\t',cfg[conf][key])
+    print('\v\v')
+            
+    #print('\nPyTorch 3D-Unet running on device:'cfg.device)
+    #print('\nsave-model:',cfg.config.save_model)
+    #print('log-interval:',cfg.config.log_intervall)
+    #if cfg.config.manual_seed:
+    #    print('seed:',cfg.config.seed)
+    #print('learning rate:',cfg.optimizer.lr)
+    #pri
+    #print('\ntest_kwargs:')
+    #for kwarg in cfg.dataset.test.kwargs: print(kwarg,cfg.dataset.test.kwargs[kwarg])
+    #print('\ntrain_kwargs:')
+    #for kwarg in cfg.dataset.train.kwargs: print(kwarg,cfg.dataset.train.kwargs[kwarg])nt('epochs:', cfg.train.epochs)
     
-    print('\ntest_kwargs:')
-    for kwarg in cfg.dataset.test.kwargs: print(kwarg,cfg.dataset.test.kwargs[kwarg])
-    print('\ntrain_kwargs:')
-    for kwarg in cfg.dataset.train.kwargs: print(kwarg,cfg.dataset.train.kwargs[kwarg])
     
-    if cfg.config.dry_run:
-        print(' \n Dry run! (only for testing!)')
+    #if cfg.config.dry_run:
+    #    print(' \n Dry run! (only for testing!)')

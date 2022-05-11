@@ -1,27 +1,65 @@
 config:
-  save_model: true
+  # for testing purpouses
   dry_run: true
-  log_intervall: 5
+
+  # no_cuda: false to run on GPU if available
+  no_cuda: false
+
+  # how often to log to tensorboard in a training epoch, e.g. 0 = never , log for every 100th batch
+  log_intervall: 10
+
+  # to reproduce results, note that this only affects pytorch seed
   manual_seed: false
   seed: 1
-dataset:
-  rgb: false
-  train: 
-    root: processed-data/dsen_2_256_new_split/timeperiod1/train
-    kwargs:
-        batch_size: 10
-        shuffle: true
-  test:
-    root: processed-data/dsen_2_256_new_split/timeperiod1/val
-    kwargs:
-        batch_size: 10
-        shuffle: true
+
+  # to save model for future inference
+  save_model: true
+
+  # where to store the saved model
+  savedir: runs/{timeperiod}_{bands}_{timestamp}/saved_model
+
+  # to load model for inference (if true no training is done)
+  load_model: false
+
+  # path to saved model
+  load_path: runs/timeperiod_bands_timestamp/saved_model/model_epoch_2.pt
+
+# parameters for  training
 train:
-  no_cuda: false
   epochs: 20
+
+# parameters for Dataset
+dataset: # dataset parameters
+  kwargs: # to both train and test dataset
+    # root to dataset
+    root_dir: processed-data/dsen_2_256_new_split
+    # only use sentinel bands 4, 3 and 2
+    rgb: false
+    # which timeperiod to use
+    timeperiod: 1
+
+  train_kwargs: # parameters unique for training dataset
+    # specifies which data to use one of [test, train, ,val]
+    data: train
+
+  test_kwargs: # parameters unique for test datataset
+    # which data to use one of [test, train, ,val]
+    data: val
+
+# Parameters for DataLoader
+data_loader: # dataloader parameters
+  train_kwargs: # train dataloader parameters
+    batch_size: 10
+    shuffle: true
+
+  test_kwargs: # test dataloader parameters
+    batch_size: 10
+    shuffle: false
+
+optimizer: # optimizer parameters
+  # learning rate
   lr: 0.001
-cuda_kwargs:
-    num_workers: 1
-    pin_memory: true
-  
-  
+
+cuda_kwargs: # GPU parameters
+  num_workers: 1
+  pin_memory: true

@@ -40,7 +40,7 @@ class sentinel(Dataset):
             labl = torch.from_numpy(h5['train_id'][:,:].astype('float32'))
             
             if self.rgb:
-                raw = torch.tensor(h5['raw'][1:4,:,:],dtype=torch.float32)
+                raw = torch.tensor(h5['raw'][0:3,:,:],dtype=torch.float32)
             else:
                 raw = torch.tensor(h5['raw'][:,:,:],dtype=torch.float32)
             return(self.make_cube(raw,labl))
@@ -64,8 +64,10 @@ class sentinel(Dataset):
            
             return(raw,labl)
     
-    def __init__(self,transforms=None, img_transform=None,root_dir=None, ext='*.nc',rgb=False):
-        self.root_dir = root_dir #dataset dir
+    def __init__(self,transforms=None, img_transform=None,root_dir=None, timeperiod=1,data='train', ext='*.nc',rgb=False):
+        self.data=data # one of test, train or val
+        self.root_dir = os.path.join(root_dir,'timeperiod{}'.format(timeperiod),self.data)  #dataset dir
+        self.timeperiod = timeperiod
         self.patch_files = glob.glob(os.path.join(self.root_dir, ext))
         self.img_transform = img_transform
         self.transforms = transforms

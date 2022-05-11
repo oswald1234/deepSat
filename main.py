@@ -26,9 +26,8 @@ from train.utils import train, test, get_conf, get_config, print_cfg
 
 from tqdm import tqdm
 
+import munch
 
-
-#TODO: save cfg
 
 maxs=torch.tensor([3272., 2232., 1638., 5288., 3847.76098633, 4062.0222168, 5027.98193359, 5334.12207031,4946.20849609, 3493.02246094])
 mins=torch.tensor([ 0., 0., 0., 0., 0., -0.91460347,  0.,  0.,  0., -0.07313281])
@@ -39,24 +38,68 @@ def main():
     # get config file
     cfg = get_conf()
     
-    # if use_cuda = TRUE, if cuda (GPU) is available and config no_cuda = false  
-    use_cuda = not cfg.train.no_cuda and torch.cuda.is_available()
-    cfg.train.device = torch.device('cuda' if use_cuda else 'cpu')
-
-    #manual seed
-    if cfg.config.manual_seed:
-        torch.manual_seed(cfg.config.seed)
+    # update unique train kwargs with non unique dataset kwargs 
+    cfg.dataset.train_kwargs.update(cfg.dataset.kwargs)
+    cfg.dataset.test_kwargs.update(cfg.dataset.kwargs)
+    
+    # parameters for dataset 
+    train_kwargs = cfg.dataset.train_kwargs
+    test_kwargs = cfg.dataset.test_kwargs
+    
+    # parameters for dataloaders 
+    loader_train_kwargs=cfg.data_loader.train_kwargs
+    loader_test_kwargs =cfg.data_loader.test_kwargs
+    
+    
+    #for testing purpouse 
+    dry_run = cfg.config.dry_run 
+    # train on GPU if no_cuda is false (and cuda is available) 
+    use_cuda = not cfg.config.no_cuda and torch.cuda.is_available()
+    # how often (#Batch) to log results in terminal  
+    log_intervall=cfg.config.log_intervall 
+    # Save model for future inference
+    save_model=cfg.config.save_model # Boolean 
       
+    # Define savedir
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    savedir = 'runs/{band}_bands_{timeperiod}_vm_{timestamp}'.format(band='rgb' if train_kwargs.rgb else 'all',
+                                                      timeperiod=train_kwargs.timeperiod,
+                                                      timestamp= timestamp)
+    
+    # load model for inference 
+    load_model = cfg.config.load_model # Boolean
+    load_path = cfg.config.load_path # path to saved model
+    
+    # for reproducability 
+    manual_seed = cfg.config.manual_seed
+    seed = cfg.config.seed
   
+    # train on device
+    device = torch.device('cuda' if use_cuda else 'cpu')
+    epochs = cfg.train.epochs
+    lr = cfg.optimizer.lr
+
+    # parameters for dry run
+    if dry_run:
+        log_intervall=5
+        savedir='runs/test_{}.format(timestamp)'
+        
+    #manual seed
+    if manual_seed:
+        torch.manual_seed(seed)
+      
     # if use_cuda => use cuda_kwargs 
     if use_cuda:
-        cfg.dataset.train.kwargs.update(cfg.cuda_kwargs)
-        cfg.dataset.test.kwargs.update(cfg.cuda_kwargs)
+        loader_train_kwargs.update(cfg.cuda_kwargs)
+        loader_test_kwargs.update(cfg.cuda_kwargs)
     
     print_cfg(cfg)
     
-
-                                 
+    #writer is for tensorboard
+    writer = SummaryWriter(savedir)
+    
+    
+    # initialize normalizer 
     pNorm = pNormalize(
         maxPer = q_hi,
         minPer = q_lo
@@ -73,7 +116,7 @@ def main():
         pNorm
     ])
     
-    #img_labl_transforms define random flips/rot to apply on both img and labl with prob p
+    #imlab_transforms define random flips/rotations to apply on both img and labl with prob p
     imlab_transforms = transforms.Compose([
         transforms.RandomApply(torch.nn.ModuleList([
             transforms.RandomVerticalFlip(),
@@ -83,51 +126,56 @@ def main():
     ]) 
     
    
-
-    # Create datasets for training & validation,
-    training_set = sentinel(root_dir=cfg.dataset.train.root, img_transform=img_transforms,transforms=imlab_transforms, rgb = cfg.dataset.rgb)
-    validation_set = sentinel(root_dir=cfg.dataset.test.root, img_transform=pNorm, rgb = cfg.dataset.rgb)
+    # Define datasets for training & validation
+    training_set = sentinel( **train_kwargs,
+                            img_transform=img_transforms,
+                            transforms=imlab_transforms
+                           )
+    
+    validation_set = sentinel(**test_kwargs,
+                              img_transform=pNorm 
+                             )
 
     # Create data loaders for our datasets; shuffle for training, not for validation
-    training_loader = DataLoader(training_set, **cfg.dataset.train.kwargs)
-    validation_loader = DataLoader(validation_set, **cfg.dataset.test.kwargs)
+    training_loader = DataLoader(training_set, **loader_train_kwargs)
+    validation_loader = DataLoader(validation_set, **loader_test_kwargs)
 
     # Report split sizes 
-    print('\nTraining set has {} instances'.format(len(training_set)))
-    print('\nValidation set has {} instances'.format(len(validation_set)))    
+    print('Training set has {} instances'.format(len(training_set)))
+    print('Validation set has {} instances\n'.format(len(validation_set)))    
     
     # batch sample
     img, labl = iter(training_loader).next()
    
-    # specify model
-    model = UNET(in_channels=img.shape[1]).to(cfg.train.device)
+    # Define model
+    model = UNET(in_channels=img.shape[1]).to(device)
+    
+    if load_model: 
+        model.load_state_dict(torch.load(load_path))
     
     # specify optimizer
-    optimizer = optim.NAdam(model.parameters(), lr=cfg.train.lr)
+    optimizer = optim.NAdam(model.parameters(), lr=lr)
     
     # specify loss function
     loss_fn = nn.CrossEntropyLoss(ignore_index=0)
-
     
-    #writer is for tensorboard
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    savedir = 'runs/test_run_vm_{}'.format(timestamp)
-    writer = SummaryWriter(savedir)
-
+    # initiate best_vloss
     best_vloss = 1_000_000.
         
     #training_loader = tqdm(training_loader)
     
-    for epoch in range(1, cfg.train.epochs + 1):
-
-        # Train one epoch
-        avg_loss = train(cfg, model, cfg.train.device, training_loader,
-                         optimizer, loss_fn, epoch, writer)
+    for i in range(epochs):
+        epoch = i+1
+        
+        if not load_model:
+            # Train one epoch
+            avg_loss = train(cfg, model, device, training_loader,
+                             optimizer, loss_fn, epoch, writer)
     
-        # validate
-        avg_vloss = test(cfg, model, cfg.train.device, validation_loader, loss_fn)
+        # validate / test
+        avg_vloss = test(cfg, model, device, validation_loader, loss_fn)
 
-        print('LOSS train {} valid {}'.format(avg_loss, avg_vloss))
+        print('Loss train: {} Loss valid: {}'.format(round(avg_loss,2), round(avg_vloss,2)))
 
         # (tensorboard) Log the running loss averaged per batch for both training and validation
         writer.add_scalars('Training vs. Validation Loss',
@@ -139,13 +187,12 @@ def main():
         # track best performance, and save the model's state
         if avg_vloss < best_vloss:
             best_vloss = avg_vloss
-            model_path = os.path.join(savedir,'saved_model/model_epoch_{}'.format(epoch))
-            if not os.path.exists(os.path.dirname(model_path)):
-                os.makedirs(os.path.dirname(model_path))
-            
-            
-            # only saves models better than previous (when indented)
-            if cfg.config.save_model:
+
+            # save model for inference
+            if save_model:
+                model_path = os.path.join(savedir,'saved_model/model_epoch_{}.pt'.format(epoch))
+                if not os.path.exists(os.path.dirname(model_path)):
+                    os.makedirs(os.path.dirname(model_path))
                 torch.save(model.state_dict(), model_path)
                 
                 

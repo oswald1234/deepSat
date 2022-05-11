@@ -1,11 +1,48 @@
 
 from sklearn.metrics import multilabel_confusion_matrix
+from dataset.utils import classCount
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
 import math
 import warnings
+
+ # NB! See classDict.py!
+strlist = [{}]*27
+strlist[0] = "Unclassified"
+strlist[1] = "Continuous Urban Fabric"
+strlist[2] = "Discontinuous Dense Urban Fabric"
+strlist[3] = "Discontinuous Medium Density Urban Fabric"
+strlist[4] = "Discontinuous Low Density Urban Fabric"
+strlist[5] = "Discontinuous Very Low Density Urban Fabric"
+strlist[6] = "Isolated Structures"
+strlist[7] = "Industrial, commercial, public, military and private units"
+strlist[8] = "Roads"
+strlist[9] = "Railways and associated land"
+strlist[10] = "Port areas"
+strlist[11] = "Airports"
+strlist[12] = "Mineral extraction and dump sites"
+strlist[13] = "Construction sites"
+strlist[14] = "Land without current use"
+strlist[15] = "Green urban areas"
+strlist[16] = "Sports and leisure facilities"
+strlist[17] = "Arable land (annual crops)"
+strlist[18] = "Permanent crops (vineyards, fruit trees, olive groves)"
+strlist[19] = "Pastures"
+strlist[20] = "Complex and mixed cultivation patterns"
+strlist[21] = "Orchards at the fringe of urban classes"
+strlist[22] = "Forests"
+strlist[23] = "Herbaceous vegetation associations (natural grassland, moors...)"
+strlist[24] = "Open spaces with little or no vegetations (beaches, dunes, bare rocks, glaciers)"
+strlist[25] = "Wetland"
+strlist[26] = "Water bodies"
+
+############## HOW TO COMPUTE MODEL METRICS #############
+#    1. computeConfMats()
+#    2. computeMetrics() (use returned metrics in step 3)
+#    3. wma()
+######################################################### 
 
 # yTrue = tensor(B,H,W), B = Batch Size, H = Height, W = Width
 # yPred = tensor(B,H,W), B = Batch Size, H = Height, W = Width
@@ -89,12 +126,13 @@ def computeMetrics(cMats):
         metrics[i][5] = mcc(cMat)     
     return metrics
 
-# Weighted Macro-Average
+# Weighted Macro-Average model metrics
 # metrics per class       =  ndarray of shape (n_classes, n_metrics)
-# classCounts wrt dataset =  tensor(n_classes)
-# For classCounts call on classCount() in dataset/utils.py 
+# trainiter               = iter(DataLoader(dataset))
+# c                       = 27 (number of classes including unclassified class)
 # Returns weighted macro-averaged model metrics
-def wma(metrics,classCounts):
+def wma(metrics,trainiter,c=27):
+    classCounts,_ = classCount(trainiter,c)
     metricsWMA = torch.zeros(len(metrics[1]),dtype=torch.float)
     weights = torch.zeros(len(classCounts),dtype=torch.float)
     weights = classCounts/classCounts.sum()
@@ -114,36 +152,6 @@ def wma(metrics,classCounts):
 # Prints table with metrics per class
 # metrics = = ndarray of shape (n_classes, n_metrics)
 def printClassMetrics(metrics):
-    # NB! See classDict.py!
-    strlist = [{}]*len(metrics)
-    strlist[0] = "Unclassified"
-    strlist[1] = "Continuous Urban Fabric"
-    strlist[2] = "Discontinuous Dense Urban Fabric"
-    strlist[3] = "Discontinuous Medium Density Urban Fabric"
-    strlist[4] = "Discontinuous Low Density Urban Fabric"
-    strlist[5] = "Discontinuous Very Low Density Urban Fabric"
-    strlist[6] = "Isolated Structures"
-    strlist[7] = "Industrial, commercial, public, military and private units"
-    strlist[8] = "Roads"
-    strlist[9] = "Railways and associated land"
-    strlist[10] = "Port areas"
-    strlist[11] = "Airports"
-    strlist[12] = "Mineral extraction and dump sites"
-    strlist[13] = "Construction sites"
-    strlist[14] = "Land without current use"
-    strlist[15] = "Green urban areas"
-    strlist[16] = "Sports and leisure facilities"
-    strlist[17] = "Arable land (annual crops)"
-    strlist[18] = "Permanent crops (vineyards, fruit trees, olive groves)"
-    strlist[19] = "Pastures"
-    strlist[20] = "Complex and mixed cultivation patterns"
-    strlist[21] = "Orchards at the fringe of urban classes"
-    strlist[22] = "Forests"
-    strlist[23] = "Herbaceous vegetation associations (natural grassland, moors...)"
-    strlist[24] = "Open spaces with little or no vegetations (beaches, dunes, bare rocks, glaciers)"
-    strlist[25] = "Wetland"
-    strlist[26] = "Water bodies"
-
     d = {}
     for i in range(len(metrics)):
         d[i] = [metrics[i][0].item(), metrics[i][1].item(), metrics[i][2].item(), 
@@ -161,54 +169,23 @@ def printClassMetrics(metrics):
 
 # Prints weighted macro-averaged model metrics 
 # metrics = ndarray with model metrics of shape (n_metrics)
-def printMetrics(metrics):
-    
-    strlist = [{}]*len(metrics)
-    strlist[0] = "Accuracy"
-    strlist[1] = "Precision"
-    strlist[2] = "Recall"
-    strlist[3] = "F1-Score"
-    strlist[4] = "Intersection over Union"
-    strlist[5] = "Matthews Correlation Coefficient"
+def printMetrics(metrics):  
+    strlistM = [{}]*len(metrics)
+    strlistM[0] = "Accuracy"
+    strlistM[1] = "Precision"
+    strlistM[2] = "Recall"
+    strlistM[3] = "F1-Score"
+    strlistM[4] = "Intersection over Union"
+    strlistM[5] = "Matthews Correlation Coefficient"
 
     print("@@ Weighted Macro-Average Model Metrics @@\n")
     
     for i in range(len(metrics)):
-        print(f'{strlist[i]:<35}: {metrics[i].item():.4f}')
+        print(f'{strlistM[i]:<35}: {metrics[i].item():.4f}')
 
 # Prints confusion matrices per class        
 # cMats = ndarray of shape (n_classes, 2, 2) with confusion matrices per class
 def printConfusionMatrices(cMats): 
-
-    strlist = [{}]*len(cMats)
-    strlist[0] = "Unclassified"
-    strlist[1] = "Continuous Urban Fabric"
-    strlist[2] = "Discontinuous Dense Urban Fabric"
-    strlist[3] = "Discontinuous Medium Density Urban Fabric"
-    strlist[4] = "Discontinuous Low Density Urban Fabric"
-    strlist[5] = "Discontinuous Very Low Density Urban Fabric"
-    strlist[6] = "Isolated Structures"
-    strlist[7] = "Industrial, commercial, public, military and private units"
-    strlist[8] = "Roads"
-    strlist[9] = "Railways and associated land"
-    strlist[10] = "Port areas"
-    strlist[11] = "Airports"
-    strlist[12] = "Mineral extraction and dump sites"
-    strlist[13] = "Construction sites"
-    strlist[14] = "Land without current use"
-    strlist[15] = "Green urban areas"
-    strlist[16] = "Sports and leisure facilities"
-    strlist[17] = "Arable land (annual crops)"
-    strlist[18] = "Permanent crops (vineyards, fruit trees, olive groves)"
-    strlist[19] = "Pastures"
-    strlist[20] = "Complex and mixed cultivation patterns"
-    strlist[21] = "Orchards at the fringe of urban classes"
-    strlist[22] = "Forests"
-    strlist[23] = "Herbaceous vegetation associations"
-    strlist[24] = "Open spaces with little or no vegetations"
-    strlist[25] = "Wetland"
-    strlist[26] = "Water bodies"
-
     labels = ["0","1","2","3","4","5","6","7","8","9","10",
               "11","12","13","14","15","16","17","18","19",
               "20","21","22","23","24","25","26"]
@@ -233,7 +210,6 @@ def printConfusionMatrices(cMats):
             col.set_ylabel("True Label", fontsize=12)
 
             counter+=1
-
 
     plt.tight_layout()  
     plt.show()

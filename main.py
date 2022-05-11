@@ -82,7 +82,7 @@ def main():
     # parameters for dry run
     if dry_run:
         log_intervall=5
-        savedir='runs/test_{}.format(timestamp)'
+        savedir='runs/test_{}'.format(timestamp)
         
     #manual seed
     if manual_seed:

@@ -38,7 +38,7 @@ def main():
     # get config file
     cfg = get_conf()
     
-    # update unique train kwargs with non unique dataset kwargs 
+    # update unique dataset train kwargs with non unique dataset kwargs 
     cfg.dataset.train_kwargs.update(cfg.dataset.kwargs)
     cfg.dataset.test_kwargs.update(cfg.dataset.kwargs)
     
@@ -93,6 +93,7 @@ def main():
         loader_train_kwargs.update(cfg.cuda_kwargs)
         loader_test_kwargs.update(cfg.cuda_kwargs)
     
+    print(' \n PyTorch 3D-Unet running on device:', device)
     print_cfg(cfg)
     
     #writer is for tensorboard

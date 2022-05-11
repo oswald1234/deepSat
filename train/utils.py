@@ -5,6 +5,7 @@ import munch
 import torch
 import numpy as np
 from tqdm import tqdm
+import argparse
 
 
 # train one epoch
@@ -132,7 +133,6 @@ def get_config():
     return munch.munchify(cfg) 
 
 # print config
-#TODO: make pretty/cleanup, there is probably some function for this in munch or maybe yaml docs
 def print_cfg(cfg):
     #from pprint import pprint
     #pprint(munch.unmunchify(cfg))
@@ -146,19 +146,3 @@ def print_cfg(cfg):
             else:
                 print('    ',key,'\t',cfg[conf][key])
     print('\v\v')
-            
-    #print('\nPyTorch 3D-Unet running on device:'cfg.device)
-    #print('\nsave-model:',cfg.config.save_model)
-    #print('log-interval:',cfg.config.log_intervall)
-    #if cfg.config.manual_seed:
-    #    print('seed:',cfg.config.seed)
-    #print('learning rate:',cfg.optimizer.lr)
-    #pri
-    #print('\ntest_kwargs:')
-    #for kwarg in cfg.dataset.test.kwargs: print(kwarg,cfg.dataset.test.kwargs[kwarg])
-    #print('\ntrain_kwargs:')
-    #for kwarg in cfg.dataset.train.kwargs: print(kwarg,cfg.dataset.train.kwargs[kwarg])nt('epochs:', cfg.train.epochs)
-    
-    
-    #if cfg.config.dry_run:
-    #    print(' \n Dry run! (only for testing!)')

@@ -1,11 +1,13 @@
 import torch
 
-# trainiter = iter(DataLoader(dataset))
-# c         = 27 (number of classes including unclassified class)
+# training_loader = DataLoader(dataset)
+# c               = 27 (number of classes including unclassified class)
 
 # Returns class count wrt dataset: n_classes_dataset, tensor(n_classes)
 #                     wrt sample:  n_classes_sample,  tensor(n_samples, n_classes)
-def classCount(trainiter,c=27):
+def classCount(training_loader,c=27):
+
+    trainiter = iter(training_loader)
     
     n_classes_dataset = torch.zeros(c,dtype=torch.int)
     
@@ -23,13 +25,15 @@ def classCount(trainiter,c=27):
             
     return n_classes_dataset, n_classes_sample
 
-# trainiter = iter(DataLoader(dataset))
-# c         = 27 (number of classes including unclassified class)
+# training_loader = DataLoader(dataset)
+# c               = 27 (number of classes including unclassified class)
 
 # Returns cross entropy loss weights wrt dataset: n_classes_dataset, tensor(n_classes)
 #                                    wrt sample:  n_classes_sample,  tensor(n_samples, n_classes)
 
-def crossEntropyLossWeights(trainiter,c=27):
+def crossEntropyLossWeights(training_loader,c=27):
+
+    trainiter = iter(training_loader)
     
     n_classes_dataset = torch.zeros(c,dtype=torch.int)
     n_classes_sample = torch.zeros(len(trainiter),c,dtype=torch.int)

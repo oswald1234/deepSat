@@ -148,6 +148,29 @@ def wma(metrics,training_loader,c=27):
     
     return metricsWMA # (Accuracy,Precision,Recall,F1-Score,IoU,MCC)
 
+########################### USE FOR VALIDATION ##############################
+# Computes Weighted Macro-Average Model IoU
+# cMats             = ndarray of shape (n_classes, 2, 2) 
+#                     with confusion matrices per class
+# classCounts       = Class count wrt dataset, tensor(n_classes).
+#                     Call classCount() in dataset/utils.py and
+#                     save the class count
+def valMetric(cMats,classCounts):
+    
+    weights = torch.empty(len(classCounts),dtype=torch.float)
+    weights = classCounts/classCounts.sum()
+    
+    iou_class = torch.empty(len(classCounts),dtype=torch.float)
+    
+    for i, cMat in enumerate (cMats):
+        iou_class[i] = iou(cMat)
+    
+    iou_metric = 0.0
+    iou_metric = np.multiply(weights,iou_class).sum()
+    
+    return iou_metric
+############################################################################
+
 ############################ Metric Visualization ##########################
 
 # Prints table with metrics per class

@@ -116,7 +116,7 @@ def mcc(cMat):
 # cMats = ndarray of shape (n_classes, 2, 2)
 # Returns computed metrics per class, ndarray of shape (n_classes, n_metrics)
 def computeMetrics(cMats):
-    metrics=torch.empty(27,6,dtype=torch.float)
+    metrics=torch.zeros(27,6,dtype=torch.float)
     for i, cMat in enumerate (cMats):
         metrics[i][0] = acc(cMat)
         metrics[i][1] = prc(cMat)
@@ -156,10 +156,10 @@ def wma(metrics,training_loader,c=27):
 #                     save the class count
 def valMetric(cMats,classCounts):
     
-    weights = torch.empty(len(classCounts),dtype=torch.float)
+    weights = torch.zeros(len(classCounts),dtype=torch.float)
     weights = classCounts/classCounts.sum()
     
-    iou_class = torch.empty(len(classCounts),dtype=torch.float)
+    iou_class = torch.zeros(len(classCounts),dtype=torch.float)
     
     for i, cMat in enumerate (cMats):
         iou_class[i] = iou(cMat)

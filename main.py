@@ -18,7 +18,8 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 from dataset.datasets import sentinel
-from dataset.utils import pNormalize
+from dataset.utils import pNormalize, crossEntropyLossWeights
+from train.loss import focalTverskyLoss
 from model.models import UNET
 import numpy as np
 
@@ -158,9 +159,19 @@ def main():
     # specify optimizer
     optimizer = optim.NAdam(model.parameters(), lr=lr)
     
-    # specify loss function
-    loss_fn = nn.CrossEntropyLoss(ignore_index=0)
+    # Compute Cross Entropy Loss Weights
+    classes = 27
+    ce_weights_train = torch.zeros(classes,dtype=torch.float)
+    ce_weights_val = torch.zeros(classes,dtype=torch.float)
     
+    ce_weights_train,_ = crossEntropyLossWeights(training_loader)
+    ce_weights_val,_ = crossEntropyLossWeights(validation_loader)
+    
+    # Specify loss functions, ce = Cross Entropy Loss, ftl = Focal Tversky Loss
+    loss_ce_train = nn.CrossEntropyLoss(weight=ce_weights_train,ignore_index=0)
+    loss_ce_val = nn.CrossEntropyLoss(weight=ce_weights_val,ignore_index=0)
+    loss_ftl = focalTverskyLoss()
+
     # initiate best_vloss
     best_vloss = 1_000_000.
         
@@ -172,10 +183,10 @@ def main():
         if not load_model:
             # Train one epoch
             avg_loss = train(cfg, model, device, training_loader,
-                             optimizer, loss_fn, epoch, writer)
+                             optimizer, loss_ce_train, loss_ftl, epoch, writer)
     
         # validate / test
-        avg_vloss = test(cfg, model, device, validation_loader, loss_fn)
+        avg_vloss = test(cfg, model, device, validation_loader, loss_ce_val, loss_ftl)
 
         print('Loss train: {} Loss valid: {}'.format(round(avg_loss,2), round(avg_vloss,2)))
 

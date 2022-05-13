@@ -9,7 +9,7 @@ import argparse
 
 
 # train one epoch
-def train(cfg, model, device, train_loader, optimizer, loss_fn, epoch, tb_writer):
+def train(cfg, model, device, train_loader, optimizer, loss_ce_train, loss_ftl, epoch, tb_writer):
 
     running_loss = 0.
     last_loss = 0.
@@ -31,7 +31,7 @@ def train(cfg, model, device, train_loader, optimizer, loss_fn, epoch, tb_writer
         output = model(inp)
         
         # compute loss and gradients
-        loss = loss_fn(output, target)
+        loss = loss_ce_train(output, target) + loss_ftl(output, target)
         loss.backward()
 
         # Adjust learning weights
@@ -62,7 +62,7 @@ def train(cfg, model, device, train_loader, optimizer, loss_fn, epoch, tb_writer
     return running_loss/batch_idx #epoch mean
 
 
-def test(cfg,model, device, validation_loader, loss_fn):
+def test(cfg, model, device, validation_loader, loss_ce_val, loss_ftl):
     model.eval()
     running_vloss = 0.
     batch_idx= 0.
@@ -73,7 +73,7 @@ def test(cfg,model, device, validation_loader, loss_fn):
             voutputs = model(vinputs)
             
             # validation loss
-            vloss = loss_fn(voutputs, vtarget)
+            vloss = loss_ce_val(voutputs, vtarget) + loss_ftl(voutputs, vtarget)
            
             running_vloss += vloss.item()
                

@@ -1,6 +1,6 @@
 config:
   # for testing purpouses
-  dry_run: true
+  dry_run: false
 
   # no_cuda: false to run on GPU if available
   no_cuda: false
@@ -26,7 +26,7 @@ config:
 
 # parameters for  training
 train:
-  epochs: 20
+  epochs: 50
 
 # parameters for Dataset
 dataset: # dataset parameters
@@ -49,16 +49,16 @@ dataset: # dataset parameters
 # Parameters for DataLoader
 data_loader: # dataloader parameters
   train_kwargs: # train dataloader parameters
-    batch_size: 10
+    batch_size: 24
     shuffle: true
 
   test_kwargs: # test dataloader parameters
-    batch_size: 10
+    batch_size: 24
     shuffle: false
 
 optimizer: # optimizer parameters
-  # learning rate
-  lr: 0.001
+  # learning rate 
+  lr: 0.002 
 
 cuda_kwargs: # GPU parameters
   num_workers: 1

@@ -22,6 +22,7 @@ from dataset.utils import pNormalize, crossEntropyLossWeights
 from train.loss import focalTverskyLoss
 from model.models import UNET
 import numpy as np
+import time
 
 from train.utils import train, test, get_conf, get_config, print_cfg
 
@@ -95,6 +96,7 @@ def main():
         loader_train_kwargs.update(cfg.cuda_kwargs)
         loader_test_kwargs.update(cfg.cuda_kwargs)
     
+    
     print(' \n PyTorch 3D-Unet running on device:', device)
     print_cfg(cfg)
     
@@ -161,20 +163,24 @@ def main():
     
     # Compute Cross Entropy Loss Weights
     classes = 27
-    ce_weights_train = torch.zeros(classes,dtype=torch.float)
-    ce_weights_val = torch.zeros(classes,dtype=torch.float)
+    ce_weights_train = torch.zeros(classes,dtype=torch.float).to(device)
+    ce_weights_val = torch.zeros(classes,dtype=torch.float).to(device) 
     
     ce_weights_train,_ = crossEntropyLossWeights(training_loader)
     ce_weights_val,_ = crossEntropyLossWeights(validation_loader)
+    ce_weights_train.to(device)
+    ce_weights_val.to(device)
+
     
     # Specify loss functions, ce = Cross Entropy Loss, ftl = Focal Tversky Loss
     loss_ce_train = nn.CrossEntropyLoss(weight=ce_weights_train,ignore_index=0)
-    loss_ce_val = nn.CrossEntropyLoss(weight=ce_weights_val,ignore_index=0)
+    #loss_ce_val = nn.CrossEntropyLoss(weight=ce_weights_val,ignore_index=0)
     loss_ftl = focalTverskyLoss()
 
     # initiate best_vloss
     best_vloss = 1_000_000.
-        
+    time_est = 0
+    tic_start = time.perf_counter()    
     #training_loader = tqdm(training_loader)
     
     for i in range(epochs):
@@ -182,13 +188,16 @@ def main():
         
         if not load_model:
             # Train one epoch
-            avg_loss = train(cfg, model, device, training_loader,
-                             optimizer, loss_ce_train, loss_ftl, epoch, writer)
-    
+            tic = time.perf_counter() 
+            avg_loss = train(cfg, model, device, training_loader, optimizer, loss_ce_train, loss_ftl, epoch, writer)
+            
+            time_epoch = round((time.perf_counter()-tic)/60,2)
+            time_est += round((time.perf_counter()-tic_start)/60,2) 
+            
         # validate / test
-        avg_vloss = test(cfg, model, device, validation_loader, loss_ce_val, loss_ftl)
+        avg_vloss = test(cfg, model, device, validation_loader, loss_ce_train, loss_ftl)
 
-        print('Loss train: {} Loss valid: {}'.format(round(avg_loss,2), round(avg_vloss,2)))
+        print('Epoch: {}, Time(min) epoch: {}, total_time: {}, Loss train: {}, Loss valid: {}'.format(epoch,time_epoch,time_est,round(avg_loss,2), round(avg_vloss,2)))
 
         # (tensorboard) Log the running loss averaged per batch for both training and validation
         writer.add_scalars('Training vs. Validation Loss',

@@ -29,9 +29,11 @@ def train(cfg, model, device, train_loader, optimizer, loss_ce_train, loss_ftl, 
 
         # make predictions for batch
         output = model(inp)
+
         
         # compute loss and gradients
-        loss = loss_ce_train(output, target) + loss_ftl(output, target)
+        loss_ce_train.to(device)
+        loss = loss_ce_train(output, target) #+ loss_ftl(output, target)
         loss.backward()
 
         # Adjust learning weights
@@ -62,7 +64,7 @@ def train(cfg, model, device, train_loader, optimizer, loss_ce_train, loss_ftl, 
     return running_loss/batch_idx #epoch mean
 
 
-def test(cfg, model, device, validation_loader, loss_ce_val, loss_ftl):
+def test(cfg, model, device, validation_loader, loss_ce_train, loss_ftl):
     model.eval()
     running_vloss = 0.
     batch_idx= 0.
@@ -73,7 +75,8 @@ def test(cfg, model, device, validation_loader, loss_ce_val, loss_ftl):
             voutputs = model(vinputs)
             
             # validation loss
-            vloss = loss_ce_val(voutputs, vtarget) + loss_ftl(voutputs, vtarget)
+            loss_ce_train.to(device)
+            vloss = loss_ce_train(voutputs, vtarget)#+ loss_ftl(voutputs, vtarget)
            
             running_vloss += vloss.item()
                

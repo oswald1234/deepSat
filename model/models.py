@@ -7,7 +7,7 @@ import torch.nn as nn
 
 class UNET(nn.Module):
     
-    def __init__(self, in_channels=3, classes=28):
+    def __init__(self, in_channels=3, classes=27):
         super(UNET, self).__init__()
         self.layers = [in_channels, 64, 128, 256, 512, 1024]
         

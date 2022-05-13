@@ -61,9 +61,9 @@ class focalTverskyLoss(nn.Module):
     def forward(self, inputs, targets, smooth=1, alpha=0.7, beta=0.3, gamma=3/4):
         
         ##### Comment out if the model contains a softmax activation layer!!!!!! #####
-        inputs = torch.softmax(inputs, dim=1)
+        inputs = torch.nn.functional.softmax(inputs, dim=1)
         
         # .sum() as in Cross Entropy Loss
-        fTverskyLoss = ((1 - tverskyIndex(inputs, targets, smooth, alpha, beta)) ** gamma).sum()
+        fTverskyLoss = ((1 - tverskyIndex(inputs, targets, smooth, alpha, beta)) ** gamma).mean()
         
         return fTverskyLoss

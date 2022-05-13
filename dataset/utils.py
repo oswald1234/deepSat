@@ -37,7 +37,7 @@ def crossEntropyLossWeights(training_loader,c=27):
     
     n_classes_dataset = torch.zeros(c,dtype=torch.int)
     n_classes_sample = torch.zeros(len(trainiter),c,dtype=torch.int)
-    n_classes_dataset, n_classes_sample = classCount(trainiter,c)
+    n_classes_dataset, n_classes_sample = classCount(training_loader,c)
     
     class_weights_dataset = torch.zeros(c,dtype=torch.float)
     class_weights_sample = torch.zeros(len(trainiter),c,dtype=torch.float)

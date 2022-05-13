@@ -132,8 +132,7 @@ def computeMetrics(cMats):
 # c                       = 27 (number of classes including unclassified class)
 # Returns weighted macro-averaged model metrics
 def wma(metrics,training_loader,c=27):
-    trainiter = iter(training_loader)
-    classCounts,_ = classCount(trainiter,c)
+    classCounts,_ = classCount(training_loader,c)
     metricsWMA = torch.zeros(len(metrics[1]),dtype=torch.float)
     weights = torch.zeros(len(classCounts),dtype=torch.float)
     weights = classCounts/classCounts.sum()

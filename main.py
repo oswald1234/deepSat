@@ -36,7 +36,8 @@ q_lo = torch.tensor([102.0, 159.0, 107.0, 77.0, 106.98081970214844, 79.003845214
         
 def main():
     # get config file
-    cfg = get_conf()
+    cfg = get_config()
+
     
     # update unique dataset train kwargs with non unique dataset kwargs 
     cfg.dataset.train_kwargs.update(cfg.dataset.kwargs)

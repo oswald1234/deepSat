@@ -122,15 +122,11 @@ def get_config():
     p.add_argument('--config_file', metavar='PATH', default='config.yaml',
                     help='path to a configuration file')
     arg = p.parse_args()
-    
-    
-    with open(arg.config_file) as yaml_file:
-        try:
-            cfg = yaml.safe_load(yaml_file)
-        except yaml.YAMLError as exc:
-            print(exc)
 
-    return munch.munchify(cfg) 
+    cfg = get_conf(path=arg.config_file)
+
+
+    return cfg 
 
 # print config
 def print_cfg(cfg):

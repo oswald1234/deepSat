@@ -1,21 +1,21 @@
 import torch
 
-# training_loader = DataLoader(dataset)
-# c               = 27 (number of classes including unclassified class)
+# data_loader     = DataLoader(dataset)
+# n_classes       = 27 (number of classes including unclassified class)
 
 # Returns class count wrt dataset: n_classes_dataset, tensor(n_classes)
 #                     wrt sample:  n_classes_sample,  tensor(n_samples, n_classes)
-def classCount(training_loader,c=27):
+def classCount(data_loader,n_classes=27):
 
-    trainiter = iter(training_loader)
+    dataiter = iter(data_loader)
     
-    n_classes_dataset = torch.zeros(c,dtype=torch.int)
+    n_classes_dataset = torch.zeros(n_classes,dtype=torch.int32)
     
-    n_classes_sample = torch.zeros(len(trainiter),c,dtype=torch.int)
+    n_classes_sample = torch.zeros(len(dataiter),n_classes,dtype=torch.int32)
     
     # i = samples/patches in dataset, j = class in sample/patch
     # j = 0 => label 0, j = 1 => label 1.... j = 26 => label 26 
-    for i, (_, labels) in enumerate(trainiter):
+    for i, (_, labels) in enumerate(dataiter):
         classes,count = labels.unique(return_counts=True)
         for j in classes:
             idx = (classes==j).nonzero().item()
@@ -25,22 +25,22 @@ def classCount(training_loader,c=27):
             
     return n_classes_dataset, n_classes_sample
 
-# training_loader = DataLoader(dataset)
-# c               = 27 (number of classes including unclassified class)
+# data_loader     = DataLoader(dataset)
+# n_classes       = 27 (number of classes including unclassified class)
 
 # Returns cross entropy loss weights wrt dataset: n_classes_dataset, tensor(n_classes)
 #                                    wrt sample:  n_classes_sample,  tensor(n_samples, n_classes)
 
-def crossEntropyLossWeights(training_loader,c=27):
+def crossEntropyLossWeights(data_loader,n_classes=27):
 
-    trainiter = iter(training_loader)
+    dataiter = iter(data_loader)
     
-    n_classes_dataset = torch.zeros(c,dtype=torch.int)
-    n_classes_sample = torch.zeros(len(trainiter),c,dtype=torch.int)
-    n_classes_dataset, n_classes_sample = classCount(training_loader,c)
+    n_classes_dataset = torch.zeros(n_classes,dtype=torch.int32)
+    n_classes_sample = torch.zeros(len(dataiter),n_classes,dtype=torch.int32)
+    n_classes_dataset, n_classes_sample = classCount(data_loader,n_classes)
     
-    class_weights_dataset = torch.zeros(c,dtype=torch.float)
-    class_weights_sample = torch.zeros(len(trainiter),c,dtype=torch.float)
+    class_weights_dataset = torch.zeros(n_classes,dtype=torch.float32)
+    class_weights_sample = torch.zeros(len(dataiter),n_classes,dtype=torch.float32)
     
     ############### Weights wrt sample
     

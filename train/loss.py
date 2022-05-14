@@ -20,16 +20,26 @@ def tverskyIndex(inputs, targets, smooth=1, alpha=0.7, beta=0.3):
     inputs = inputs.permute(1,0,2,3)
     
     # Then, flatten all other input dimensions CxBxHxW --> CxB*H*W
-    # and target dimensions BxHxW --> B*H*W
+    # and targets dimensions BxHxW --> B*H*W
     inputs = inputs.reshape(NUM_CLASSES, -1)
     targets = targets.reshape(-1)
+    
+    # Permute inputs CxBHW --> BHWxC
+    inputs = inputs.permute(1,0)
+    
+    # Filter out label = 0 (Unclassified)
+    targets_fltr = targets[targets != 0]
+    inputs = inputs[targets != 0]
+    
+    # Permute inputs back BHWxC --> CxBHW
+    inputs = inputs.permute(1,0)
     
     # https://www.kaggle.com/code/bigironsphere/loss-function-library-keras-pytorch/notebook#Tversky-Loss
     # https://en.wikipedia.org/wiki/Tversky_index
     # There're other implementations (replacing FP/FN)...
-    TP = (inputs * targets).sum(dim=1)
-    FP = ((1-targets) * inputs).sum(dim=1)
-    FN = (targets * (1-inputs)).sum(dim=1)
+    TP = (inputs * targets_fltr).sum(dim=1)
+    FP = ((1-targets_fltr) * inputs).sum(dim=1)
+    FN = (targets_fltr * (1-inputs)).sum(dim=1)
     
     tversky_index = (TP + smooth) / (TP + alpha*FP + beta*FN + smooth)
     
@@ -62,8 +72,10 @@ class focalTverskyLoss(nn.Module):
         
         ##### Comment out if the model contains a softmax activation layer!!!!!! #####
         inputs = torch.nn.functional.softmax(inputs, dim=1)
-        
+         
         # .sum() as in Cross Entropy Loss
+        # fTverskyLoss = ((1 - tverskyIndex(inputs, targets, smooth, alpha, beta)) ** gamma).sum()
+        
         fTverskyLoss = ((1 - tverskyIndex(inputs, targets, smooth, alpha, beta)) ** gamma).mean()
         
         return fTverskyLoss

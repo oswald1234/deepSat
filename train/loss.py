@@ -14,6 +14,9 @@ import torch.nn as nn
 
 def tverskyIndex(inputs, targets, smooth=1, alpha=0.7, beta=0.3):
     
+    # Slice first C index? C = 0 is label 0 = Unclassified
+    inputs = inputs[:,1:len(inputs[0]),:,:]
+    
     NUM_CLASSES = inputs.size(dim=1)
 
     # Permute inputs BxCxHxW into CxBxHxW, to have classes as the frist index

@@ -1,11 +1,11 @@
-
-from sklearn.metrics import multilabel_confusion_matrix
+from sklearn.metrics import multilabel_confusion_matrix, confusion_matrix
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
 import math
 import warnings
+import itertools
 
 # Class descriptions. See classDict.py!
 n_classes_dsc = 27
@@ -247,9 +247,13 @@ def printClassMetrics(metrics,classCounts):
 
     print("@@ Class Metrics @@\n")
 
-    print ("{:<8} {:<15} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10}".format(
+    print("{:<8} {:<15} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10}".format(
         'Label', 'UA2018 ID', '% Data','Accuracy','Precision','Recall',
         'F1-Score','IoU','MCC','Description'))
+    
+    print("------------------------------------------------------------------------------"+
+          "------------------------------------------------------------------------------"+
+          "----------------------------")
 
     for l, v in d.items():
         p, acc, prc, rcl, f1s, iou, mcc, dsc, ua = v
@@ -304,4 +308,100 @@ def printConfusionMatrices(cMats):
             counter+=1
 
     plt.tight_layout()  
+    plt.show()
+
+# Prints a n_class x n_class confusion matrix
+# yTrue       = tensor(scalar)
+# yPred       = tensor(scalar)
+# CMAP        = The gradient of the values displayed from matplotlib.pyplot.cm
+def printConfusionMatrix(yTrue,yPred,CMAP='Blues'):
+    # Filter out label = 0 (Unclassified)
+    yTrue_fltr = yTrue[yTrue != 0]
+    yPred_fltr = yPred[yTrue != 0]
+
+    LABELS = np.unique(yTrue_fltr)
+
+    cMat = confusion_matrix(y_true=yTrue_fltr,y_pred=yPred_fltr,labels=LABELS)
+
+    plot_confusion_matrix(cm=cMat,target_names=LABELS,cmap=CMAP)
+
+# Source: https://stackoverflow.com/questions/19233771/sklearn-plot-confusion-matrix-with-labels
+def plot_confusion_matrix(cm,
+                          target_names,
+                          title='Confusion matrix',
+                          cmap=None,
+                          normalize=True):
+    """
+    Given a sklearn confusion matrix (cm), make a nice plot
+
+    Arguments
+    ---------
+    cm:           confusion matrix from sklearn.metrics.confusion_matrix
+
+    target_names: given classification classes such as [0, 1, 2]
+                  the class names, for example: ['high', 'medium', 'low']
+
+    title:        the text to display at the top of the matrix
+
+    cmap:         the gradient of the values displayed from matplotlib.pyplot.cm
+                  see http://matplotlib.org/examples/color/colormaps_reference.html
+                  plt.get_cmap('jet') or plt.cm.Blues
+
+    normalize:    If False, plot the raw numbers
+                  If True, plot the proportions
+
+    Usage
+    -----
+    plot_confusion_matrix(cm           = cm,                  # confusion matrix created by
+                                                              # sklearn.metrics.confusion_matrix
+                          normalize    = True,                # show proportions (%)
+                          target_names = y_labels_vals,       # list of names of the classes
+                          title        = best_estimator_name) # title of graph
+
+    Citiation
+    ---------
+    http://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html
+
+    """
+
+    if cmap is None:
+        cmap = plt.get_cmap('Blues')
+
+    h = 16
+    w = 15
+    fig = plt.figure(figsize=(h, w))
+    ax = fig.add_subplot(1,1,1)
+    ax.tick_params(axis="x", bottom=True, top=True, labelbottom=True, labeltop=True)
+    r = np.random.random((h, w))
+    imRatio = r.shape[0]/r.shape[1]
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar(fraction=0.046*imRatio, pad=0.04)
+    plt.grid(None)
+
+    if target_names is not None:
+        tick_marks = np.arange(len(target_names))
+        plt.xticks(tick_marks, target_names)
+        plt.yticks(tick_marks, target_names)
+        
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+    thresh = cm.max() / 1.5 if normalize else cm.max() / 2
+    
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        if normalize:
+            plt.text(j, i, "{:0.2%}".format(cm[i, j]),
+                     horizontalalignment="center",
+                     color="red" if cm[i, j] > thresh else "black",
+                     fontsize=9)
+        else:
+            plt.text(j, i, "{:,}".format(cm[i, j]),
+                     horizontalalignment="center",
+                     color="red" if cm[i, j] > thresh else "black",
+                     fontsize=9)
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
     plt.show()

@@ -311,8 +311,8 @@ def printConfusionMatrices(cMats):
     plt.show()
 
 # Prints a n_class x n_class confusion matrix
-# yTrue       = tensor(scalar)
-# yPred       = tensor(scalar)
+# yTrue       = tensor([])
+# yPred       = tensor([])
 # CMAP        = The gradient of the values displayed from matplotlib.pyplot.cm
 def printConfusionMatrix(yTrue,yPred,CMAP='Blues'):
     # Filter out label = 0 (Unclassified)

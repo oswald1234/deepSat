@@ -79,8 +79,8 @@ class focalTverskyLoss(nn.Module):
         inputs = torch.nn.functional.softmax(inputs, dim=1)
          
         # .sum() as in Cross Entropy Loss
-        # fTverskyLoss = ((1 - tverskyIndex(inputs, targets, smooth, alpha, beta)) ** gamma).sum()
+        fTverskyLoss = ((1 - tverskyIndex(inputs, targets, smooth, alpha, beta)) ** gamma).sum()
         
-        fTverskyLoss = ((1 - tverskyIndex(inputs, targets, smooth, alpha, beta)) ** gamma).mean()
+        # fTverskyLoss = ((1 - tverskyIndex(inputs, targets, smooth, alpha, beta)) ** gamma).mean()
         
         return fTverskyLoss

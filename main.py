@@ -19,7 +19,7 @@ from torchvision import datasets, transforms
 
 from dataset.datasets import sentinel
 from preprocess.classDict import   class_dict
-from dataset.utils import pNormalize, crossEntropyLossWeights
+from dataset.utils import pNormalize, crossEntropyLossWeights, classCount
 from train.loss import focalTverskyLoss
 from model.models import UNET
 import numpy as np
@@ -42,6 +42,7 @@ def main():
     cfg = get_config()
 
     nClasses = len(list(set(val['train_id'] for val in class_dict.values()))) + 1
+    cfg.config.nClasses = nClasses
     
     # update unique dataset train kwargs with non unique dataset kwargs 
     cfg.dataset.train_kwargs.update(cfg.dataset.kwargs)
@@ -70,6 +71,7 @@ def main():
     savedir = 'runs/{band}_bands_{timeperiod}_vm_{timestamp}'.format(band='rgb' if train_kwargs.rgb else 'all',
                                                       timeperiod=train_kwargs.timeperiod,
                                                       timestamp= timestamp)
+    cfg.config.savedir= savedir
     
     # load model for inference 
     load_model = cfg.config.load_model # Boolean
@@ -164,20 +166,21 @@ def main():
     optimizer = optim.NAdam(model.parameters(), lr=lr)
     
     # Compute Cross Entropy Loss Weights
-    classes = 27
-    ce_weights_train = torch.zeros(classes,dtype=torch.float).to(device)
-    ce_weights_val = torch.zeros(classes,dtype=torch.float).to(device) 
-    
-    ce_weights_train,_ = crossEntropyLossWeights(training_loader)
-    ce_weights_val,_ = crossEntropyLossWeights(validation_loader)
-    ce_weights_train.to(device)
-    ce_weights_val.to(device)
+    if cfg.loss.crossEntropy.weighted:
+        #ce_weights_train = torch.zeros(nClasses,dtype=torch.float)
+        #ce_weights_val = torch.zeros(nClasses,dtype=torch.float)
+        ce_weights_train,_ = crossEntropyLossWeights(training_loader)
+        ce_weights_train.to(device)
+        #ce_weights_val,_ = crossEntropyLossWeights(validation_loader)
+        #ce_weights_val.to(device)
+    else:
+        ce_weights_train = None
 
+    val_classCounts = classCount(validation_loader)
     
     # Specify loss functions, ce = Cross Entropy Loss, ftl = Focal Tversky Loss
-    loss_ce_train = nn.CrossEntropyLoss(weight=ce_weights_train,ignore_index=0)
-    #loss_ce_val = nn.CrossEntropyLoss(weight=ce_weights_val,ignore_index=0)
-    loss_ftl = focalTverskyLoss()
+    loss_ce = nn.CrossEntropyLoss(weight=ce_weights_train,ignore_index=0).to(device)    
+    loss_ftl = focalTverskyLoss(**cfg.loss.focalTwersky_kwargs)
 
     # initiate best_vloss
     best_vloss = 1_000_000.
@@ -191,15 +194,17 @@ def main():
         if not load_model:
             # Train one epoch
             tic = time.perf_counter() 
-            avg_loss = train(cfg, model, device, training_loader, optimizer, loss_ce_train, loss_ftl, epoch, writer)
+        avg_loss = train(cfg, model, device, training_loader, optimizer, loss_ce, loss_ftl, epoch, writer)
             
-            time_epoch = round((time.perf_counter()-tic)/60,2)
-            time_est += round((time.perf_counter()-tic_start)/60,2) 
+             
             
         # validate / test
-        avg_vloss = test(cfg, model, device, validation_loader, loss_ce_train, loss_ftl)
-
-        print('Epoch: {}, Time(min) epoch: {}, total_time: {}, Loss train: {}, Loss valid: {}'.format(epoch,time_epoch,time_est,round(avg_loss,2), round(avg_vloss,2)))
+        avg_vloss,iou = test(cfg, model, device, validation_loader, loss_ce,loss_ftl,val_classCounts)
+        
+        time_epoch = round((time.perf_counter()-tic)/60.0,2)
+        time_est += round((time.perf_counter()-tic_start)/3600.0,2)
+        
+        print('Epoch: {}, Time epoch (min): {}, total_time (h): {}, Loss train: {}, Loss valid: {}'.format(epoch,time_epoch,time_est,round(avg_loss,2), round(avg_vloss,2)))
 
         # (tensorboard) Log the running loss averaged per batch for both training and validation
         writer.add_scalars('Training vs. Validation Loss',

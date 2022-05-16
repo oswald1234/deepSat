@@ -8,7 +8,7 @@ import warnings
 import itertools
 
 # Class descriptions. See classDict.py!
-n_classes_dsc = 27
+n_classes_dsc = 28
  
 strlist = [{}]*n_classes_dsc 
 strlist[0] = "Unclassified"
@@ -19,28 +19,29 @@ strlist[4] = "Discontinuous Low Density Urban Fabric"
 strlist[5] = "Discontinuous Very Low Density Urban Fabric"
 strlist[6] = "Isolated Structures"
 strlist[7] = "Industrial, commercial, public, military and private units"
-strlist[8] = "Roads"
-strlist[9] = "Railways and associated land"
-strlist[10] = "Port areas"
-strlist[11] = "Airports"
-strlist[12] = "Mineral extraction and dump sites"
-strlist[13] = "Construction sites"
-strlist[14] = "Land without current use"
-strlist[15] = "Green urban areas"
-strlist[16] = "Sports and leisure facilities"
-strlist[17] = "Arable land (annual crops)"
-strlist[18] = "Permanent crops (vineyards, fruit trees, olive groves)"
-strlist[19] = "Pastures"
-strlist[20] = "Complex and mixed cultivation patterns"
-strlist[21] = "Orchards at the fringe of urban classes"
-strlist[22] = "Forests"
-strlist[23] = "Herbaceous vegetation associations (natural grassland, moors...)"
-strlist[24] = "Open spaces with little or no vegetations (beaches, dunes, bare rocks, glaciers)"
-strlist[25] = "Wetland"
-strlist[26] = "Water bodies"
+strlist[8] = "Fast transit roads and associated land"
+strlist[9] = "Other roads and associated land"
+strlist[10] = "Railways and associated land"
+strlist[11] = "Port areas"
+strlist[12] = "Airports"
+strlist[13] = "Mineral extraction and dump sites"
+strlist[14] = "Construction sites"
+strlist[15] = "Land without current use"
+strlist[16] = "Green urban areas"
+strlist[17] = "Sports and leisure facilities"
+strlist[18] = "Arable land (annual crops)"
+strlist[19] = "Permanent crops (vineyards, fruit trees, olive groves)"
+strlist[20] = "Pastures"
+strlist[21] = "Complex and mixed cultivation patterns"
+strlist[22] = "Orchards at the fringe of urban classes"
+strlist[23] = "Forests"
+strlist[24] = "Herbaceous vegetation associations (natural grassland, moors...)"
+strlist[25] = "Open spaces with little or no vegetations (beaches, dunes, bare rocks, glaciers)"
+strlist[26] = "Wetland"
+strlist[27] = "Water bodies"
 
 # Urban Atlas 2018 IDs
-n_classes_ua = 26
+n_classes_ua = 27
 
 strlist_ua = [{}]*n_classes_ua
 strlist_ua[0] = "11100"
@@ -50,25 +51,26 @@ strlist_ua[3] = "11230"
 strlist_ua[4] = "11240"
 strlist_ua[5] = "11300"
 strlist_ua[6] = "12100"
-strlist_ua[7] = "12210/12220"
-strlist_ua[8] = "12230"
-strlist_ua[9] = "12300"
-strlist_ua[10] = "12400"
-strlist_ua[11] = "13100"
-strlist_ua[12] = "13300"
-strlist_ua[13] = "13400"
-strlist_ua[14] = "14100"
-strlist_ua[15] = "14200"
-strlist_ua[16] = "21000"
-strlist_ua[17] = "22000"
-strlist_ua[18] = "23000"
-strlist_ua[19] = "24000"
-strlist_ua[20] = "25000"
-strlist_ua[21] = "31000"
-strlist_ua[22] = "32000"
-strlist_ua[23] = "33000"
-strlist_ua[24] = "40000"
-strlist_ua[25] = "50000"
+strlist_ua[7] = "12210"
+strlist_ua[8] = "12220"
+strlist_ua[9] = "12230"
+strlist_ua[10] = "12300"
+strlist_ua[11] = "12400"
+strlist_ua[12] = "13100"
+strlist_ua[13] = "13300"
+strlist_ua[14] = "13400"
+strlist_ua[15] = "14100"
+strlist_ua[16] = "14200"
+strlist_ua[17] = "21000"
+strlist_ua[18] = "22000"
+strlist_ua[19] = "23000"
+strlist_ua[20] = "24000"
+strlist_ua[21] = "25000"
+strlist_ua[22] = "31000"
+strlist_ua[23] = "32000"
+strlist_ua[24] = "33000"
+strlist_ua[25] = "40000"
+strlist_ua[26] = "50000"
 
 ############################# HOW TO COMPUTE MODEL METRICS ########################
 #    1. computeConfMats()
@@ -81,7 +83,7 @@ strlist_ua[25] = "50000"
 # yPred       = tensor(B,H,W), B = Batch Size, H = Height, W = Width
 # n_classes   = number of classes (scalar)
 # Returns ndarray of shape (n_classes, 2, 2) with confusion matrices per class
-def computeConfMats(yTrue,yPred,n_classes=27):
+def computeConfMats(yTrue,yPred,n_classes=28):
     LABELS = np.arange(n_classes) # (0,1,2..., n_classes)
     # Flatten dimensions BxHxW --> B*H*W
     yTrue = yTrue.reshape(-1)
@@ -284,9 +286,9 @@ def printConfusionMatrices(cMats):
      
     labels = ["1","2","3","4","5","6","7","8","9","10","11",
               "12","13","14","15","16","17","18","19","20",
-              "21","22","23","24","25","26"]
+              "21","22","23","24","25","26","27"]
 
-    fig, axes = plt.subplots(nrows=13, ncols=2, figsize=(20,45))
+    fig, axes = plt.subplots(nrows=9, ncols=3, figsize=(20,45))
 
     group_names = ["True Negative","False Positive","False Negative","True Positive"]
 

@@ -46,7 +46,7 @@ def tverskyIndex(inputs, targets, smooth=1, alpha=0.7, beta=0.3):
     # tversky_index = (TP + smooth) / (TP + alpha*FP + beta*FN + smooth)
     
     # https://towardsdatascience.com/dealing-with-class-imbalanced-image-datasets-1cbd17de76b5
-    tversky_index = (TP + smooth) / (TP + alpha * FN + (1 - alpha) * FP + smooth)
+    tversky_index = (TP + smooth) / (TP + alpha * FN + beta * FP + smooth)
     
     return tversky_index
 

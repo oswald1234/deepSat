@@ -3,6 +3,7 @@ import os
 import glob
 import numpy as np
 import torch
+from preprocess.class_dict import class_dict
 from torch.utils.data import Dataset
 
 
@@ -20,7 +21,14 @@ from torch.utils.data import Dataset
    
     
 class sentinel(Dataset):
-
+    
+    @staticmethod
+    def map_train_id(x):
+        if x!=0:
+            return(np.float32(class_dict[str(x)]['train_id']))
+        else:
+            return(np.float32(x))
+    
     @staticmethod
     # stack image and label to make transforms on both at same time
     def make_cube(raw,labl):
@@ -37,7 +45,9 @@ class sentinel(Dataset):
     @staticmethod 
     def open_h5(self,idx):
         with h5py.File(self.patch_files[idx], 'r') as h5:
-            labl = torch.from_numpy(h5['train_id'][:,:].astype('float32'))
+            #labl = torch.from_numpy(h5['train_id'][:,:].astype('float32'))
+            labl = torch.from_numpy(self.map_id(h5['class_code'][:,:]))
+        
             
             if self.rgb:
                 raw = torch.tensor(h5['raw'][0:3,:,:],dtype=torch.float32)
@@ -72,6 +82,7 @@ class sentinel(Dataset):
         self.img_transform = img_transform
         self.transforms = transforms
         self.rgb = rgb
+        self.map_id = np.vectorize(self.map_train_id)
 
     # return length of dataset
     def __len__(self):

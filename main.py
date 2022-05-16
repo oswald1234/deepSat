@@ -18,6 +18,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 from dataset.datasets import sentinel
+from preprocess.classDict import   class_dict
 from dataset.utils import pNormalize, crossEntropyLossWeights
 from train.loss import focalTverskyLoss
 from model.models import UNET
@@ -40,6 +41,7 @@ def main():
     # get config file
     cfg = get_config()
 
+    nClasses = len(list(set(val['train_id'] for val in class_dict.values()))) + 1
     
     # update unique dataset train kwargs with non unique dataset kwargs 
     cfg.dataset.train_kwargs.update(cfg.dataset.kwargs)
@@ -151,9 +153,9 @@ def main():
     
     # batch sample
     img, labl = iter(training_loader).next()
-   
+
     # Define model
-    model = UNET(in_channels=img.shape[1]).to(device)
+    model = UNET(in_channels=img.shape[1],classes=nClasses).to(device)
     
     if load_model: 
         model.load_state_dict(torch.load(load_path))

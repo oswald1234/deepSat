@@ -33,7 +33,7 @@ def train(cfg, model, device, train_loader, optimizer, loss_ce_train, loss_ftl, 
         
         # compute loss and gradients
         loss_ce_train.to(device)
-        loss = loss_ce_train(output, target) #+ loss_ftl(output, target)
+        loss = loss_ce_train(output, target) + loss_ftl(output, target)
         loss.backward()
 
         # Adjust learning weights
@@ -76,7 +76,7 @@ def test(cfg, model, device, validation_loader, loss_ce_train, loss_ftl):
             
             # validation loss
             loss_ce_train.to(device)
-            vloss = loss_ce_train(voutputs, vtarget)#+ loss_ftl(voutputs, vtarget)
+            vloss = loss_ce_train(voutputs, vtarget) + loss_ftl(voutputs, vtarget)
            
             running_vloss += vloss.item()
                

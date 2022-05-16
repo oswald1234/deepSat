@@ -82,13 +82,21 @@ strlist_ua[26] = "50000"
 # yTrue       = tensor(B,H,W), B = Batch Size, H = Height, W = Width
 # yPred       = tensor(B,H,W), B = Batch Size, H = Height, W = Width
 # n_classes   = number of classes (scalar)
-# Returns ndarray of shape (n_classes, 2, 2) with confusion matrices per class
-def computeConfMats(yTrue,yPred,n_classes=28):
-    LABELS = np.arange(n_classes) # (0,1,2..., n_classes)
+# Returns ndarray of shape (n_classes-1, 2, 2) with confusion matrices per class.
+# Removes class 0 = UNCLASSIFIED
+def computeConfMats(yTrue,yPred):
+    LABELS = np.array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,
+                       23,24,25,26,27])
+    
     # Flatten dimensions BxHxW --> B*H*W
     yTrue = yTrue.reshape(-1)
     yPred = yPred.reshape(-1)
-    cMats = multilabel_confusion_matrix(y_true=yTrue,y_pred=yPred,labels=LABELS)
+    
+    # Remove LABEL 0 = UNCLASSIFIED
+    yTrue_fltr = yTrue[yTrue != 0]
+    yPred_fltr = yPred[yTrue != 0]
+    
+    cMats = multilabel_confusion_matrix(y_true=yTrue_fltr,y_pred=yPred_fltr,labels=LABELS)
     return cMats
     
 # Cast to float32 to avoid data overflow    
@@ -168,7 +176,6 @@ def mcc(cMat):
 # n_metrics = Number of metrics (scalar)
 # Returns computed metrics per class, ndarray of shape (n_classes, n_metrics)
 def computeMetrics(cMats, n_metrics=6):
-    cMats = cMats[1:len(cMats),:,:] #REMOVE LABEL 0 = UNCLASSIFIED
     metrics=torch.zeros(len(cMats),n_metrics,dtype=torch.float32)
     for i, cMat in enumerate (cMats):
         metrics[i][0] = acc(cMat)
@@ -211,7 +218,6 @@ def wma(metrics,classCounts):
 #                     Call classCount() in dataset/utils.py and
 #                     save the class count
 def valMetric(cMats,classCounts):
-    cMats = cMats[1:len(cMats),:,:] #REMOVE LABEL 0 = UNCLASSIFIED
     classCounts = classCounts[1:len(classCounts)] #REMOVE LABEL 0 = UNCLASSIFIED
     
     weights = torch.zeros(len(classCounts),dtype=torch.float32)
@@ -235,8 +241,7 @@ def valMetric(cMats,classCounts):
 # classCounts       = Class count wrt dataset, tensor(n_classes).
 #                     Call classCount() in dataset/utils.py and
 #                     save the class count
-def printClassMetrics(metrics,classCounts):
-        
+def printClassMetrics(metrics,classCounts):    
     classCounts = classCounts[1:len(classCounts)] #REMOVE LABEL 0 = UNCLASSIFIED
     classCounts = classCounts/classCounts.sum() * 100    
     strlist2 = strlist[1:len(strlist)]   #REMOVE LABEL 0 = UNCLASSIFIED
@@ -281,7 +286,6 @@ def printMetrics(metrics):
 # Prints confusion matrices per class        
 # cMats = ndarray of shape (n_classes, 2, 2) with confusion matrices per class
 def printConfusionMatrices(cMats): 
-    cMats = cMats[1:len(cMats),:,:]      #REMOVE LABEL 0 = UNCLASSIFIED
     strlist2 = strlist[1:len(strlist)]   #REMOVE LABEL 0 = UNCLASSIFIED
      
     labels = ["1","2","3","4","5","6","7","8","9","10","11",

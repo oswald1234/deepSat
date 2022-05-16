@@ -37,14 +37,16 @@ def tverskyIndex(inputs, targets, smooth=1, alpha=0.7, beta=0.3):
     # Permute inputs back BHWxC --> CxBHW
     inputs = inputs.permute(1,0)
     
-    # https://www.kaggle.com/code/bigironsphere/loss-function-library-keras-pytorch/notebook#Tversky-Loss
-    # https://en.wikipedia.org/wiki/Tversky_index
-    # There're other implementations (replacing FP/FN)...
     TP = (inputs * targets_fltr).sum(dim=1)
     FP = ((1-targets_fltr) * inputs).sum(dim=1)
     FN = (targets_fltr * (1-inputs)).sum(dim=1)
     
-    tversky_index = (TP + smooth) / (TP + alpha*FP + beta*FN + smooth)
+    # https://en.wikipedia.org/wiki/Tversky_index
+    # https://www.kaggle.com/code/bigironsphere/loss-function-library-keras-pytorch/notebook#Tversky-Loss
+    # tversky_index = (TP + smooth) / (TP + alpha*FP + beta*FN + smooth)
+    
+    # https://towardsdatascience.com/dealing-with-class-imbalanced-image-datasets-1cbd17de76b5
+    tversky_index = (TP + smooth) / (TP + alpha * FN + (1 - alpha) * FP + smooth)
     
     return tversky_index
 

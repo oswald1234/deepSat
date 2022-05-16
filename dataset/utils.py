@@ -1,11 +1,11 @@
 import torch
 
 # data_loader     = DataLoader(dataset)
-# n_classes       = 27 (number of classes including unclassified class)
+# n_classes       = 28 (number of classes including unclassified class)
 
 # Returns class count wrt dataset: n_classes_dataset, tensor(n_classes)
 #                     wrt sample:  n_classes_sample,  tensor(n_samples, n_classes)
-def classCount(data_loader,n_classes=27):
+def classCount(data_loader,n_classes=28):
 
     dataiter = iter(data_loader)
     
@@ -14,7 +14,7 @@ def classCount(data_loader,n_classes=27):
     n_classes_sample = torch.zeros(len(dataiter),n_classes,dtype=torch.int32)
     
     # i = samples/patches in dataset, j = class in sample/patch
-    # j = 0 => label 0, j = 1 => label 1.... j = 26 => label 26 
+    # j = 0 => label 0, j = 1 => label 1.... j = 27 => label 27 
     for i, (_, labels) in enumerate(dataiter):
         classes,count = labels.unique(return_counts=True)
         for j in classes:
@@ -26,12 +26,12 @@ def classCount(data_loader,n_classes=27):
     return n_classes_dataset, n_classes_sample
 
 # data_loader     = DataLoader(dataset)
-# n_classes       = 27 (number of classes including unclassified class)
+# n_classes       = 28 (number of classes including unclassified class)
 
 # Returns cross entropy loss weights wrt dataset: n_classes_dataset, tensor(n_classes)
 #                                    wrt sample:  n_classes_sample,  tensor(n_samples, n_classes)
 
-def crossEntropyLossWeights(data_loader,n_classes=27):
+def crossEntropyLossWeights(data_loader,n_classes=28):
 
     dataiter = iter(data_loader)
     
@@ -47,7 +47,7 @@ def crossEntropyLossWeights(data_loader,n_classes=27):
     # Set class weight = 0 for label = 0
     # Inf control. Init torch.zero not actually "zero"
     # i = samples/patches in dataset, j = class in sample/patch
-    # j = 0 => label 0, j = 1 => label 1.... j = 26 => label 26 
+    # j = 0 => label 0, j = 1 => label 1.... j = 27 => label 27 
     for i in range(len(n_classes_sample)):
         for j in range(len(n_classes_sample[i])):
             if j == 0:
@@ -60,7 +60,7 @@ def crossEntropyLossWeights(data_loader,n_classes=27):
     # Set class weight = 0 for label = 0
     # Inf control. Init torch.zero not actually "zero"
     # i = class in sample/patch
-    # i = 0 => label 0, i = 1 => label 1.... i = 26 => label 26 
+    # i = 0 => label 0, i = 1 => label 1.... i = 27 => label 27 
     for i, count in enumerate(n_classes_dataset):
         if i == 0:
             class_weights_dataset[i] = 0

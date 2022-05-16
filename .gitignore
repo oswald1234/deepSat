@@ -11,3 +11,4 @@ train_final.ipynb
 *.zip.part
 experimental*
 test*
+*.pt

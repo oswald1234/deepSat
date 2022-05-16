@@ -46,19 +46,37 @@ dataset: # dataset parameters
     # which data to use one of [test, train, ,val]
     data: val
 
-# Parameters for DataLoader
+
 data_loader: # dataloader parameters
   train_kwargs: # train dataloader parameters
-    batch_size: 24
+    batch_size: 10
     shuffle: true
 
   test_kwargs: # test dataloader parameters
-    batch_size: 24
+    batch_size: 10
     shuffle: false
+
 
 optimizer: # optimizer parameters
   # learning rate 
   lr: 0.002 
+
+loss: # Parameters for loss function
+  # loss = weight*crossEntropy+(1-weight)*focalTverskyLoss 
+  weight: 0.8         
+  crossEntropy:
+    weighted: true
+  focalTversky_kwargs: # parameters for focalTverskyLoss function
+    # alpha   = Scalar (>= 0)
+    # alfa = beta = 1   = Tanimoto coefficient
+    # alfa = beta = 0.5 = Sørensen–Dice coefficient
+    alpha: 0.7
+    # beta : Scalar (>= 0)
+    beta: 0.3
+    # smooth : Smoothing factor, scalar (have seen 1e-6 and 1 used as values)
+    smooth: 1
+    # gamma  : Scalar [1,3]
+    gamma : 4/3
 
 cuda_kwargs: # GPU parameters
   num_workers: 1

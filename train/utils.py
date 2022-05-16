@@ -6,18 +6,21 @@ import torch
 import numpy as np
 from tqdm import tqdm
 import argparse
+from dataset.utils import classCount
+from train.metrics import computeConfMats,valMetric
 
 
 # train one epoch
-def train(cfg, model, device, train_loader, optimizer, loss_ce_train, loss_ftl, epoch, tb_writer):
+def train(cfg, model, device, train_loader, optimizer, loss_ce, loss_ftl, epoch, tb_writer):
 
     running_loss = 0.
     last_loss = 0.
     batch_idx = 0
+
     model.train(True)
     ninstances = len(train_loader.dataset)
-    #train_loader = tqdm(train_loader, desc='Batch')
     log_intervall = cfg.config.log_intervall if cfg.config.log_intervall != 0 else 99999
+    w = cfg.loss.weight
 
     for inp, target in train_loader:
         batch_idx += 1
@@ -32,8 +35,8 @@ def train(cfg, model, device, train_loader, optimizer, loss_ce_train, loss_ftl, 
 
         
         # compute loss and gradients
-        loss_ce_train.to(device)
-        loss = loss_ce_train(output, target) + loss_ftl(output, target)
+        
+        loss = w*loss_ce(output, target) + (1-w)*loss_ftl(output, target)
         loss.backward()
 
         # Adjust learning weights
@@ -64,19 +67,22 @@ def train(cfg, model, device, train_loader, optimizer, loss_ce_train, loss_ftl, 
     return running_loss/batch_idx #epoch mean
 
 
-def test(cfg, model, device, validation_loader, loss_ce_train, loss_ftl):
+def test(cfg, model, device, validation_loader, loss_ce, loss_ftl,val_classCounts):
     model.eval()
     running_vloss = 0.
     batch_idx= 0.
-    
+    w= cfg.loss.weight
+    cMats=torch.zeros((cfg.config.nClasses,2,2),dtype=torch.int32)
+    iou=0
+
     with torch.no_grad():
         for vinputs, vtarget in validation_loader:
             vinputs, vtarget = vinputs.to(device), vtarget.to(device)
             voutputs = model(vinputs)
             
             # validation loss
-            loss_ce_train.to(device)
-            vloss = loss_ce_train(voutputs, vtarget) + loss_ftl(voutputs, vtarget)
+         
+            vloss = w*loss_ce(voutputs, vtarget) + (1-w)*loss_ftl(voutputs, vtarget)
            
             running_vloss += vloss.item()
                
@@ -87,12 +93,13 @@ def test(cfg, model, device, validation_loader, loss_ce_train, loss_ftl):
                 
                 
             # prediction
-            #pred = torch.nn.functional.softmax(voutputs,dim=1)
-            #pred = torch.argmax(pred,dim=1)
+            pred = torch.nn.functional.softmax(voutputs,dim=1)
+            pred = torch.argmax(pred,dim=1)
+            cMats += computeConfMats(vtarget,pred)
             
     avg_vloss = running_vloss / batch_idx
-
-    return avg_vloss 
+    iou = valMetric(cMats,val_classCounts)
+    return (avg_vloss,iou) 
 
 
     

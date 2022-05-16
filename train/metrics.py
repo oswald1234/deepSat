@@ -311,10 +311,12 @@ def printConfusionMatrices(cMats):
     plt.show()
 
 # Prints a n_class x n_class confusion matrix
-# yTrue       = tensor([])
-# yPred       = tensor([])
+# yTrue       = tensor([labels])
+# yPred       = tensor([predictions])
 # CMAP        = The gradient of the values displayed from matplotlib.pyplot.cm
-def printConfusionMatrix(yTrue,yPred,CMAP='Blues'):
+# NORMALIZE   = If False, plot the raw numbers
+#               If True, plot the proportions
+def printConfusionMatrix(yTrue,yPred,CMAP='Blues',NORMALIZE=True):
     # Filter out label = 0 (Unclassified)
     yTrue_fltr = yTrue[yTrue != 0]
     yPred_fltr = yPred[yTrue != 0]
@@ -323,7 +325,7 @@ def printConfusionMatrix(yTrue,yPred,CMAP='Blues'):
 
     cMat = confusion_matrix(y_true=yTrue_fltr,y_pred=yPred_fltr,labels=LABELS)
 
-    plot_confusion_matrix(cm=cMat,target_names=LABELS,cmap=CMAP)
+    plot_confusion_matrix(cm=cMat,target_names=LABELS,cmap=CMAP,normalize=NORMALIZE)
 
 # Source: https://stackoverflow.com/questions/19233771/sklearn-plot-confusion-matrix-with-labels
 def plot_confusion_matrix(cm,
@@ -372,6 +374,7 @@ def plot_confusion_matrix(cm,
     fig = plt.figure(figsize=(h, w))
     ax = fig.add_subplot(1,1,1)
     ax.tick_params(axis="x", bottom=True, top=True, labelbottom=True, labeltop=True)
+    ax.tick_params(axis="y", left=True, labelleft=True)
     r = np.random.random((h, w))
     imRatio = r.shape[0]/r.shape[1]
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
@@ -386,20 +389,37 @@ def plot_confusion_matrix(cm,
         
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        #cm = cm.astype('float') / cm.sum()
 
-    thresh = cm.max() / 1.5 if normalize else cm.max() / 2
+    #thresh = cm.max() / 1.5 if normalize else cm.max() / 2
     
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         if normalize:
+            if cm[i,j] == np.diag(cm)[i]:
+                plt.text(j, i, "{:0.2%}".format(cm[i, j]),
+                     horizontalalignment="center",
+                     color="lime",
+                     fontsize=8, fontweight="roman")
+
             plt.text(j, i, "{:0.2%}".format(cm[i, j]),
                      horizontalalignment="center",
-                     color="red" if cm[i, j] > thresh else "black",
-                     fontsize=9)
+                     #color="red" if cm[i, j] > thresh else "black",
+                     #color="grey",
+                     color="red" if (cm[i,j] == cm[i,:].max()) & (cm[i,j] != np.diag(cm)[i]) else "dimgrey",
+                     fontsize=8, fontweight="roman")
         else:
+            if cm[i,j] == np.diag(cm)[i]:
+                plt.text(j, i, "{:0.2%}".format(cm[i, j]),
+                    horizontalalignment="center",
+                    color="lime",
+                    fontsize=8, fontweight="roman")
+                    
             plt.text(j, i, "{:,}".format(cm[i, j]),
                      horizontalalignment="center",
-                     color="red" if cm[i, j] > thresh else "black",
-                     fontsize=9)
+                     #color="red" if cm[i, j] > thresh else "black",
+                     #color="grey",
+                     color="red" if (cm[i,j] == cm[i,:].max()) & (cm[i,j] != np.diag(cm)[i]) else "dimgrey",
+                     fontsize=8, fontweight="roman")
 
     plt.tight_layout()
     plt.ylabel('True label')

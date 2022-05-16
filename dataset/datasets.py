@@ -3,7 +3,7 @@ import os
 import glob
 import numpy as np
 import torch
-from preprocess.class_dict import class_dict
+from preprocess.classDict import class_dict
 from torch.utils.data import Dataset
 
 

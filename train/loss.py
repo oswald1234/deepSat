@@ -70,16 +70,20 @@ def tverskyIndex(inputs, targets, smooth=1, alpha=0.7, beta=0.3):
 # smooth  = Smoothing factor, scalar (have seen 1e-6 and 1 used as values)
 
 class focalTverskyLoss(nn.Module):
-    def __init__(self):
+    def __init__(self, smooth=1,alpha=0.7,beta=0.3, gamma=4/3):
         super(focalTverskyLoss, self).__init__()
+        self.smooth=smooth
+        self.alpha=alpha
+        self.beta=beta
+        self.gamma=gamma
 
-    def forward(self, inputs, targets, smooth=1, alpha=0.7, beta=0.3, gamma=3/4):
+    def forward(self, inputs, targets):
         
         ##### Comment out if the model contains a softmax activation layer!!!!!! #####
         inputs = torch.nn.functional.softmax(inputs, dim=1)
          
         # .sum() as in Cross Entropy Loss
-        fTverskyLoss = ((1 - tverskyIndex(inputs, targets, smooth, alpha, beta)) ** gamma).sum()
+        fTverskyLoss = ((1 - tverskyIndex(inputs, targets, self.smooth, self.alpha, self.beta)) ** self.gamma).sum()
         
         # fTverskyLoss = ((1 - tverskyIndex(inputs, targets, smooth, alpha, beta)) ** gamma).mean()
         

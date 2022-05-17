@@ -37,8 +37,12 @@ def train(cfg, model, device, train_loader, optimizer, loss_ce, loss_ftl, epoch,
 
         
         # compute loss and gradients
-        
-        loss = w*loss_ce(output, target) + (1-w)*loss_ftl(output, target)
+
+        if w:
+            loss = w*loss_ce(output, target) + (1-w)*loss_ftl(output, target)
+        else:
+            loss= loss_ce(output, target) + loss_ftl(output, target)
+
         loss.backward()
 
         # Adjust learning weights

@@ -25,7 +25,7 @@ from model.models import UNET
 import numpy as np
 import time
 
-from train.utils import train, test, get_conf, get_config, print_cfg
+from train.utils import train, test, get_conf, get_config, print_cfg,save_cfg
 
 from tqdm import tqdm
 
@@ -36,7 +36,8 @@ maxs=torch.tensor([3272., 2232., 1638., 5288., 3847.76098633, 4062.0222168, 5027
 mins=torch.tensor([ 0., 0., 0., 0., 0., -0.91460347,  0.,  0.,  0., -0.07313281])
 q_hi = torch.tensor([2102.0, 1716.0, 1398.0, 4732.0, 2434.42919921875, 3701.759765625, 4519.2177734375, 4857.7734375, 3799.80322265625, 3008.8935546875])
 q_lo = torch.tensor([102.0, 159.0, 107.0, 77.0, 106.98081970214844, 79.00384521484375, 86.18966674804688, 70.40167236328125, 50.571197509765625, 36.95356750488281])
-ce_weights =torch.tensor([0.0000e+00, 5.1362e+02, 1.1472e+02, 4.4708e+01, 1.7092e+01, 1.6746e+01,
+ce_weights =torch.tensor(
+        [0.0000e+00, 5.1362e+02, 1.1472e+02, 4.4708e+01, 1.7092e+01, 1.6746e+01,
         4.4391e+01, 1.6548e+01, 1.1023e+02, 7.8302e+00, 1.1555e+02, 1.0042e+03,
         1.6943e+02, 9.5672e+01, 4.4588e+02, 3.8277e+02, 3.2361e+01, 3.2498e+01,
         2.8015e+00, 2.0817e+04, 3.2352e+00, 0.0000e+00, 0.0000e+00, 1.0000e+00,
@@ -187,6 +188,7 @@ def main():
 
     val_classCounts,_ = classCount(validation_loader)
     
+    
     # Specify loss functions, ce = Cross Entropy Loss, ftl = Focal Tversky Loss
     loss_ce = nn.CrossEntropyLoss(weight=ce_weights_train,ignore_index=0).to(device)    
     loss_ftl = focalTverskyLoss(**cfg.loss.focalTversky_kwargs)
@@ -195,8 +197,10 @@ def main():
     best_vloss = 1_000_000.
     time_est = 0
     tic_start = time.perf_counter()    
-    #training_loader = tqdm(training_loader)
     
+    save_cfg(cfg,savedir)
+
+    # train/test loop
     for i in range(epochs):
         epoch = i+1
         

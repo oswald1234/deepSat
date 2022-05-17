@@ -1,5 +1,7 @@
 # for config 
+from distutils.command.config import config
 import yaml
+import os
 #makes dicts nested for nested calls
 import munch
 import torch
@@ -152,3 +154,8 @@ def print_cfg(cfg):
             else:
                 print('    ',key,'\t',cfg[conf][key])
     print('\v\v')
+
+def save_cfg(cfg,savedir):
+    with open(os.path.join(savedir,'config.yaml'),'w') as file:
+        yaml.dump(config,file)
+

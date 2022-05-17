@@ -72,7 +72,7 @@ def test(cfg, model, device, validation_loader, loss_ce, loss_ftl,val_classCount
     running_vloss = 0.
     batch_idx= 0.
     w= cfg.loss.weight
-    cMats=torch.zeros((cfg.config.nClasses,2,2),dtype=torch.int32)
+    cMats=torch.zeros((cfg.config.nClasses-1,2,2),dtype=torch.int32)
     iou=0
 
     with torch.no_grad():

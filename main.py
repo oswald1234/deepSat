@@ -36,6 +36,12 @@ maxs=torch.tensor([3272., 2232., 1638., 5288., 3847.76098633, 4062.0222168, 5027
 mins=torch.tensor([ 0., 0., 0., 0., 0., -0.91460347,  0.,  0.,  0., -0.07313281])
 q_hi = torch.tensor([2102.0, 1716.0, 1398.0, 4732.0, 2434.42919921875, 3701.759765625, 4519.2177734375, 4857.7734375, 3799.80322265625, 3008.8935546875])
 q_lo = torch.tensor([102.0, 159.0, 107.0, 77.0, 106.98081970214844, 79.00384521484375, 86.18966674804688, 70.40167236328125, 50.571197509765625, 36.95356750488281])
+ce_weights =torch.tensor([0.0000e+00, 5.1362e+02, 1.1472e+02, 4.4708e+01, 1.7092e+01, 1.6746e+01,
+        4.4391e+01, 1.6548e+01, 1.1023e+02, 7.8302e+00, 1.1555e+02, 1.0042e+03,
+        1.6943e+02, 9.5672e+01, 4.4588e+02, 3.8277e+02, 3.2361e+01, 3.2498e+01,
+        2.8015e+00, 2.0817e+04, 3.2352e+00, 0.0000e+00, 0.0000e+00, 1.0000e+00,
+        4.9671e+01, 5.8634e+03, 4.5644e+01, 6.7183e+00])
+
         
 def main():
     # get config file
@@ -165,22 +171,25 @@ def main():
     # specify optimizer
     optimizer = optim.NAdam(model.parameters(), lr=lr)
     
+    
     # Compute Cross Entropy Loss Weights
     if cfg.loss.crossEntropy.weighted:
         #ce_weights_train = torch.zeros(nClasses,dtype=torch.float)
         #ce_weights_val = torch.zeros(nClasses,dtype=torch.float)
-        ce_weights_train,_ = crossEntropyLossWeights(training_loader)
-        ce_weights_train.to(device)
+        #ce_weights_train,_ = crossEntropyLossWeights(training_loader)
+        #ce_weights_train.to(device)
+        #print(ce_weights_train)
         #ce_weights_val,_ = crossEntropyLossWeights(validation_loader)
         #ce_weights_val.to(device)
+        ce_weights_train = ce_weights
     else:
         ce_weights_train = None
 
-    val_classCounts = classCount(validation_loader)
+    val_classCounts,_ = classCount(validation_loader)
     
     # Specify loss functions, ce = Cross Entropy Loss, ftl = Focal Tversky Loss
     loss_ce = nn.CrossEntropyLoss(weight=ce_weights_train,ignore_index=0).to(device)    
-    loss_ftl = focalTverskyLoss(**cfg.loss.focalTwersky_kwargs)
+    loss_ftl = focalTverskyLoss(**cfg.loss.focalTversky_kwargs)
 
     # initiate best_vloss
     best_vloss = 1_000_000.
@@ -204,7 +213,7 @@ def main():
         time_epoch = round((time.perf_counter()-tic)/60.0,2)
         time_est += round((time.perf_counter()-tic_start)/3600.0,2)
         
-        print('Epoch: {}, Time epoch (min): {}, total_time (h): {}, Loss train: {}, Loss valid: {}'.format(epoch,time_epoch,time_est,round(avg_loss,2), round(avg_vloss,2)))
+        print('Epoch: {}, Time epoch (min): {}, total_time (h): {}, Loss train: {}, Loss valid: {}, IOU: {}'.format(epoch,time_epoch,time_est,round(avg_loss,2), round(avg_vloss,2),round(iou.item(),2)))
 
         # (tensorboard) Log the running loss averaged per batch for both training and validation
         writer.add_scalars('Training vs. Validation Loss',

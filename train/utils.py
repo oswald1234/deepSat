@@ -95,7 +95,7 @@ def test(cfg, model, device, validation_loader, loss_ce, loss_ftl,val_classCount
             # prediction
             pred = torch.nn.functional.softmax(voutputs,dim=1)
             pred = torch.argmax(pred,dim=1)
-            cMats += computeConfMats(vtarget,pred)
+            cMats += computeConfMats(vtarget.cpu(),pred.cpu())
             
     avg_vloss = running_vloss / batch_idx
     iou = valMetric(cMats,val_classCounts)

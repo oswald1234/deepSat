@@ -26,7 +26,7 @@ config:
 
 # parameters for  training
 train:
-  epochs: 50
+  epochs: 100
 
 # parameters for Dataset
 dataset: # dataset parameters
@@ -76,7 +76,7 @@ loss: # Parameters for loss function
     # smooth : Smoothing factor, scalar (have seen 1e-6 and 1 used as values)
     smooth: 1
     # gamma  : Scalar [1,3]
-    gamma : 4/3
+    gamma : 1.3333333333333333
 
 cuda_kwargs: # GPU parameters
   num_workers: 1

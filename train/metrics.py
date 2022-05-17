@@ -384,7 +384,8 @@ def plot_confusion_matrix(cm,
     r = np.random.random((h, w))
     imRatio = r.shape[0]/r.shape[1]
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
+    #plt.title(title)
+    plt.title("Predicted label")
     plt.colorbar(fraction=0.046*imRatio, pad=0.04)
     plt.grid(None)
 

@@ -99,11 +99,11 @@ from sklearn.metrics import multilabel_confusion_matrix
 
 
 def tverskyIndex(preds, targets, smooth=1, alpha=0.7, beta=0.3):
-    print(preds.shape,targets.shape)
+  
     # make target and labels same shape
     targets = targets.reshape(-1)
     preds = preds.reshape(-1)
-    print(preds.shape,targets.shape)
+  
     # Filter out label = 0 (Unclassified) from target and labels
     pred = preds[targets != 0]
     targets = targets[targets != 0]

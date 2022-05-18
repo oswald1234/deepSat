@@ -87,8 +87,10 @@ def test(cfg, model, device, validation_loader, loss_ce, loss_ftl,val_classCount
             voutputs = model(vinputs)
             
             # validation loss
-         
-            vloss = w*loss_ce(voutputs, vtarget) + (1-w)*loss_ftl(voutputs, vtarget)
+            if w:
+                vloss = w*loss_ce(voutputs, vtarget) + (1-w)*loss_ftl(voutputs, vtarget)
+            else:
+                vloss= loss_ce(voutputs, vtarget) + loss_ftl(voutputs, vtarget)
            
             running_vloss += vloss.item()
                

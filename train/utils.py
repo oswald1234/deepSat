@@ -38,7 +38,7 @@ def train(cfg, model, device, train_loader, optimizer, loss_ce, loss_ftl, epoch,
         
         # compute loss and gradients
 
-        if w:
+        if w!='None':
             loss = w*loss_ce(output, target) + (1-w)*loss_ftl(output, target)
         else:
             loss= loss_ce(output, target) + loss_ftl(output, target)
@@ -87,7 +87,7 @@ def test(cfg, model, device, validation_loader, loss_ce, loss_ftl,val_classCount
             voutputs = model(vinputs)
             
             # validation loss
-            if w:
+            if w!='None':
                 vloss = w*loss_ce(voutputs, vtarget) + (1-w)*loss_ftl(voutputs, vtarget)
             else:
                 vloss= loss_ce(voutputs, vtarget) + loss_ftl(voutputs, vtarget)

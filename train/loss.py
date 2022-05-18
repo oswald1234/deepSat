@@ -110,7 +110,7 @@ def tverskyIndex(preds, targets, smooth=1, alpha=0.7, beta=0.3):
     
     print(preds.shape,targets.shape)
     
-    cm=multilabel_confusion_matrix(targets,pred)
+    cm=multilabel_confusion_matrix(targets.cpu(),pred.cpu())
     FP = cm[:,0,1]
     FN = cm[:,1,0]
     TP = cm[:,1,1]

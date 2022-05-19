@@ -182,7 +182,7 @@ def mcc(cMat):
 # cMats     = ndarray of shape (n_classes, 2, 2)
 # n_metrics = Number of metrics (scalar)
 # Returns computed metrics per class, ndarray of shape (n_classes, n_metrics)
-def computeMetrics(cMats, n_metrics=6):
+def computeClassMetrics(cMats, n_metrics=6):
     metrics=torch.zeros(len(cMats),n_metrics,dtype=torch.float32)
     for i, cMat in enumerate (cMats):
         metrics[i][0] = acc(cMat)
@@ -296,7 +296,8 @@ def printClassMetrics(metrics,classCounts,TB=False,title="Class_Metrics",path="r
                 l+1, ua, p, acc, prc, rcl, f1s, iou, mcc, dsc))
     else:
         strlist3 = strlist
-        strlist3[7] = "Industrial, commercial, public, military & private units"
+        strlist3[7] = "Industrial,commercial,public,military & private units"
+        strlist3[19] = "Permanent crops"
         strlist3[24] = "Herbaceous vegetation associations"
         strlist3[25] = "Open spaces with little or no vegetations"
         strlist3 = strlist3[1:len(strlist3)]   #REMOVE LABEL 0 = UNCLASSIFIED
@@ -341,7 +342,7 @@ def printClassMetrics(metrics,classCounts,TB=False,title="Class_Metrics",path="r
 # title       = Image name (String), use when printing to Tensorboard
 # path        = Path-string, use when printing to Tensorboard
 # TB          = if False output print to standard out, if True print image to Tensorboard
-def printMetrics(metrics,TB=False,title="Model_Metrics",path="runs/Model_Metrics"):
+def printModelMetrics(metrics,TB=False,title="Model_Metrics",path="runs/Model_Metrics"):
     strlistM = [{}]*len(metrics)
     strlistM[0] = "Accuracy"
     strlistM[1] = "Precision"
@@ -388,7 +389,8 @@ def printMetrics(metrics,TB=False,title="Model_Metrics",path="runs/Model_Metrics
 # TB          = if False output print to standard out, if True print image to Tensorboard
 def printConfusionMatrices(cMats, TB=False,title="Confusion_Matrices",path="runs/Confusion_Matrices"):
     strlist2 = strlist
-    strlist2[7] = "Industrial, commercial, public, military & private units"
+    strlist2[7] = "Industrial,commercial,public,military & private units"
+    strlist2[19] = "Permanent crops"
     strlist2[24] = "Herbaceous vegetation associations"
     strlist2[25] = "Open spaces with little or no vegetations"
     strlist2 = strlist2[1:len(strlist2)]   #REMOVE LABEL 0 = UNCLASSIFIED
@@ -504,7 +506,7 @@ def plot_confusion_matrix(cm,
     #plt.title('Confusion matrix')
     plt.title("Predicted label")
     plt.colorbar(fraction=0.046*imRatio, pad=0.04)
-    plt.grid(None)
+    plt.grid(False)
 
     if target_names is not None:
         tick_marks = np.arange(len(target_names))

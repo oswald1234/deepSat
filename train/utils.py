@@ -13,11 +13,13 @@ from train.metrics import computeConfMats,valMetric
 
 
 # train one epoch
-def train(cfg, model, device, train_loader, optimizer, loss_ce, loss_ftl, epoch, tb_writer):
+def train(cfg, model, device, train_loader, optimizer, loss_ce, loss_ftl, epoch, tb_writer, train_classCounts):
 
     running_loss = 0.
     last_loss = 0.
     batch_idx = 0
+    cMats=torch.zeros((cfg.config.nClasses-1,2,2),dtype=torch.int32)
+    iou = 0
 
     model.train(True)
     ninstances = len(train_loader.dataset)
@@ -62,9 +64,15 @@ def train(cfg, model, device, train_loader, optimizer, loss_ce, loss_ftl, epoch,
                 epoch,cfg.train.epochs, batch_idx*len(inp), ninstances,
                 100.*batch_idx*len(inp) / ninstances, last_loss)
             )
-            # Report to tensor board
-            #tb_x = (epoch-1) * len(train_loader) + batch_idx    # x value
-            #tb_writer.add_scalar('Loss/train', last_loss, tb_x) 
+            # prediction for IOU 
+            pred = torch.nn.functional.softmax(output,dim=1)
+            pred = torch.argmax(pred,dim=1)
+            cMats += computeConfMats(target.cpu(),pred.cpu())
+            iou = valMetric(cMats,train_classCounts)    
+             #Report to tensor board
+            tb_x = (epoch-1) * len(train_loader) + batch_idx    # x value
+            tb_writer.add_scalar('Loss/train', last_loss, tb_x) 
+            tb_writer.add_scalar('IOU/train', iou, tb_x) 
             
 
             if cfg.config.dry_run:

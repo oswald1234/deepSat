@@ -187,6 +187,7 @@ def main():
         ce_weights_train = None
 
     val_classCounts,_ = classCount(validation_loader)
+    train_classCounts,_= classCount(training_loader)
     
     
     # Specify loss functions, ce = Cross Entropy Loss, ftl = Focal Tversky Loss
@@ -207,7 +208,7 @@ def main():
         if not load_model:
             # Train one epoch
             tic = time.perf_counter() 
-        avg_loss = train(cfg, model, device, training_loader, optimizer, loss_ce, loss_ftl, epoch, writer)
+        avg_loss = train(cfg, model, device, training_loader, optimizer, loss_ce, loss_ftl, epoch, writer,train_classCounts)
             
              
             
@@ -221,7 +222,7 @@ def main():
 
         # (tensorboard) Log the running loss averaged per batch for both training and validation
         writer.add_scalars('Training vs. Validation Loss',
-                           {'Training': avg_loss, 'Validation': avg_vloss},
+                           {'Training': avg_loss, 'Validation': avg_vloss, 'IOU':iou.item()},
                            epoch
                            )
         writer.flush()

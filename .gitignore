@@ -12,3 +12,4 @@ train_final.ipynb
 experimental*
 test*
 *.pt
+train.ipynb

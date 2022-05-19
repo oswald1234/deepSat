@@ -1,11 +1,18 @@
 from sklearn.metrics import multilabel_confusion_matrix, confusion_matrix
+from torch.utils.tensorboard import SummaryWriter
+from torchvision.transforms import ToTensor
+from PIL import Image
+from datetime import datetime
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
+import torchvision
 import math
 import warnings
 import itertools
+import io
 
 # Class descriptions. See classDict.py!
 n_classes_dsc = 28
@@ -236,40 +243,105 @@ def valMetric(cMats,classCounts):
 
 ############################ Metric Visualization ##########################
 
+# Converts BytesIO object with plot to tensor and writes to TensorBoard
+# buf   = BytesIO object
+# title = Image name (String)
+# path  = Path-string
+def toTensorboard(buf,title,path):
+    timestamp = datetime.now().strftime('%Y%m%d_%H')
+    tb_writer = SummaryWriter(path+"/"+timestamp)
+    buf.seek(0)
+    im = Image.open(buf)
+    im = torchvision.transforms.ToTensor()(im)
+    tb_writer.add_image(title, im)
+    buf.close()
+    tb_writer.flush()
+    tb_writer.close()
+
 # Prints table with metrics per class
 # metrics           = ndarray of shape (n_classes, n_metrics) with class metrics
 # classCounts       = Class count wrt dataset, tensor(n_classes).
 #                     Call classCount() in dataset/utils.py and
 #                     save the class count
-def printClassMetrics(metrics,classCounts):    
+# title       = Image name (String), use when printing to Tensorboard
+# path        = Path-string, use when printing to Tensorboard
+# TB          = if False output print to standard out, if True print image to Tensorboard
+
+def printClassMetrics(metrics,classCounts,TB=False,title="Class_Metrics",path="runs/Class_metrics"):   
     classCounts = classCounts[1:len(classCounts)] #REMOVE LABEL 0 = UNCLASSIFIED
-    classCounts = classCounts/classCounts.sum() * 100    
-    strlist2 = strlist[1:len(strlist)]   #REMOVE LABEL 0 = UNCLASSIFIED
+    classCounts = classCounts/classCounts.sum() * 100
     
-    d = {}
-    for i in range(len(metrics)):
-        d[i] = [classCounts[i], metrics[i][0].item(), metrics[i][1].item(), metrics[i][2].item(), 
-                metrics[i][3].item(), metrics[i][4].item(), metrics[i][5].item(), strlist2[i], 
-                strlist_ua[i]]
+    if TB == False:    
+        strlist2 = strlist[1:len(strlist)]   #REMOVE LABEL 0 = UNCLASSIFIED
+        
+        d = {}
+        for i in range(len(metrics)):
+            d[i] = [classCounts[i], metrics[i][0].item(), metrics[i][1].item(), metrics[i][2].item(), 
+                    metrics[i][3].item(), metrics[i][4].item(), metrics[i][5].item(), strlist2[i], 
+                    strlist_ua[i]]
 
-    print("@@ Class Metrics @@\n")
+        print("@@ Class Metrics @@\n")
 
-    print("{:<8} {:<15} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10}".format(
-        'Label', 'UA2018 ID', '% Data','Accuracy','Precision','Recall',
-        'F1-Score','IoU','MCC','Description'))
-    
-    print("------------------------------------------------------------------------------"+
-          "------------------------------------------------------------------------------"+
-          "----------------------------")
+        print("{:<8} {:<15} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10}".format(
+            'Label', 'UA2018 ID', '% Data','Accuracy','Precision','Recall',
+            'F1-Score','IoU','MCC','Description'))
+        
+        print("------------------------------------------------------------------------------"+
+            "------------------------------------------------------------------------------"+
+            "----------------------------")
 
-    for l, v in d.items():
-        p, acc, prc, rcl, f1s, iou, mcc, dsc, ua = v
-        print ("{:<8} {:<15} {:<10.2f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10}".format(
-            l+1, ua, p, acc, prc, rcl, f1s, iou, mcc, dsc))
+        for l, v in d.items():
+            p, acc, prc, rcl, f1s, iou, mcc, dsc, ua = v
+            print ("{:<8} {:<15} {:<10.2f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10}".format(
+                l+1, ua, p, acc, prc, rcl, f1s, iou, mcc, dsc))
+    else:
+        strlist3 = strlist
+        strlist3[7] = "Industrial, commercial, public, military & private units"
+        strlist3[24] = "Herbaceous vegetation associations"
+        strlist3[25] = "Open spaces with little or no vegetations"
+        strlist3 = strlist3[1:len(strlist3)]   #REMOVE LABEL 0 = UNCLASSIFIED
+        
+        d = {}
+        for i in range(len(metrics)):
+            d[i] = [classCounts[i], metrics[i][0].item(), metrics[i][1].item(), metrics[i][2].item(), 
+                    metrics[i][3].item(), metrics[i][4].item(), metrics[i][5].item(), strlist3[i], 
+                    strlist_ua[i]]
+            
+        df = pd.DataFrame(columns=['Label','UA2018 ID', '% Data', 'Accuracy', 'Precision', 
+                           'Recall', 'F1-Score', 'Intersection over Union', 
+                           'Matthews Correlation Coefficient', 'Description'])
+        
+        for l, v in d.items():
+            p, acc, prc, rcl, f1s, iou, mcc, dsc, ua = v
+            df = df.append({'Label':l+1, 'UA2018 ID':ua, '% Data':p, 'Accuracy':acc, 'Precision':prc, 'Recall':rcl, 'F1-Score':f1s, 
+                   'Intersection over Union':iou, 'Matthews Correlation Coefficient':mcc, 'Description':dsc}, ignore_index=True)
+            
+        df.reset_index(drop=True, inplace=True)
+        df=df.round({'% Data':2,'Accuracy':4,'Precision':4,'Recall':4,'F1-Score':4,'Intersection over Union':4,
+            'Matthews Correlation Coefficient':4})
+        
+        N = 20
+        fig = plt.figure(figsize=(20,2+N/3))
+        ax = plt.subplot(111, frame_on=False) # No visible frame
+        ax.xaxis.set_visible(False)  # Hide the x axis
+        ax.yaxis.set_visible(False)  # Hide the y axis
+        
+        table = ax.table(cellText=df.values, colLabels=df.keys(),
+                 loc='center',cellLoc="left",colLoc="left",edges="closed")
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close()
+        toTensorboard(buf,title,path)   
 
 # Prints weighted macro-averaged model metrics 
 # metrics = ndarray with model metrics of shape (n_metrics)
-def printMetrics(metrics):  
+# title       = Image name (String), use when printing to Tensorboard
+# path        = Path-string, use when printing to Tensorboard
+# TB          = if False output print to standard out, if True print image to Tensorboard
+def printMetrics(metrics,TB=False,title="Model_Metrics",path="runs/Model_Metrics"):
     strlistM = [{}]*len(metrics)
     strlistM[0] = "Accuracy"
     strlistM[1] = "Precision"
@@ -278,15 +350,48 @@ def printMetrics(metrics):
     strlistM[4] = "Intersection over Union"
     strlistM[5] = "Matthews Correlation Coefficient"
 
-    print("@@ Weighted Macro-Average Model Metrics @@\n")
-    
-    for i in range(len(metrics)):
-        print(f'{strlistM[i]:<35}: {metrics[i].item():.4f}')
+    if TB == False:    
+        print("@@ Weighted Macro-Average Model Metrics @@\n")
+        
+        for i in range(len(metrics)):
+            print(f'{strlistM[i]:<35}: {metrics[i].item():.4f}')
+            
+    else:
+        d = {strlistM[0]: metrics[0].item(), strlistM[1]: metrics[1].item(), strlistM[2]: metrics[2].item(), 
+             strlistM[3]: metrics[3].item(), strlistM[4]: metrics[4].item(), strlistM[5]: metrics[5].item()}
+        df = pd.DataFrame(data=d, index=[0])
+            
+        nrows = 0
+        ncols = 0
+
+        wcell = 14
+        hcell = 15
+
+        wpad = 0.3
+        hpad = 1.2
+
+        fig = plt.figure(figsize=(2*wcell+wpad, nrows*hcell+hpad))
+        ax = plt.subplot(111, frame_on=False) # No visible frame
+        ax.xaxis.set_visible(False)  # Hide the x axis
+        ax.yaxis.set_visible(False)  # Hide the y axis
+        ax.table(cellText=np.round(df.values,decimals=4), colLabels=df.keys(),
+        loc='center',cellLoc="center",colLoc="center",edges="open")
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close()
+        toTensorboard(buf,title,path) 
 
 # Prints confusion matrices per class        
 # cMats = ndarray of shape (n_classes, 2, 2) with confusion matrices per class
-def printConfusionMatrices(cMats): 
-    strlist2 = strlist[1:len(strlist)]   #REMOVE LABEL 0 = UNCLASSIFIED
+# title       = Image name (String), use when printing to Tensorboard
+# path        = Path-string, use when printing to Tensorboard
+# TB          = if False output print to standard out, if True print image to Tensorboard
+def printConfusionMatrices(cMats, TB=False,title="Confusion_Matrices",path="runs/Confusion_Matrices"):
+    strlist2 = strlist
+    strlist2[7] = "Industrial, commercial, public, military & private units"
+    strlist2[24] = "Herbaceous vegetation associations"
+    strlist2[25] = "Open spaces with little or no vegetations"
+    strlist2 = strlist2[1:len(strlist2)]   #REMOVE LABEL 0 = UNCLASSIFIED
      
     labels = ["1","2","3","4","5","6","7","8","9","10","11",
               "12","13","14","15","16","17","18","19","20",
@@ -307,14 +412,21 @@ def printConfusionMatrices(cMats):
 
             sns.set(font_scale=1.1)
             sns.heatmap(cMats[counter], annot=labels2, fmt="", cmap='Blues', ax=col)
-            col.set_title("Label " + labels[counter] + " (UA18: " + strlist_ua[counter] + "): " + strlist2[counter], fontsize=11)
+            col.set_title("Label " + labels[counter] + " (UA18: " + strlist_ua[counter] + "): " + strlist2[counter], fontsize=10)
             col.set_xlabel("Predicted Label", fontsize=12)
             col.set_ylabel("True Label", fontsize=12)
 
             counter+=1
 
     plt.tight_layout()  
-    plt.show()
+    
+    if TB == False:
+        plt.show()
+    else:
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close()
+        toTensorboard(buf,title,path)
 
 # Prints a n_class x n_class confusion matrix
 # yTrue       = tensor([labels])
@@ -322,7 +434,10 @@ def printConfusionMatrices(cMats):
 # CMAP        = The gradient of the values displayed from matplotlib.pyplot.cm
 # NORMALIZE   = If False, plot the raw numbers
 #               If True, plot the proportions
-def printConfusionMatrix(yTrue,yPred,CMAP='Blues',NORMALIZE=True):
+# title       = Image name (String), use when printing to Tensorboard
+# path        = Path-string, use when printing to Tensorboard
+# TB          = if False output print to standard out, if True print image to Tensorboard
+def printConfusionMatrix(yTrue,yPred,CMAP='Blues',NORMALIZE=True,TB=False,title="Confusion_Matrix",path="runs/Confusion_Matrix"):
     # Filter out label = 0 (Unclassified)
     yTrue_fltr = yTrue[yTrue != 0]
     yPred_fltr = yPred[yTrue != 0]
@@ -331,14 +446,16 @@ def printConfusionMatrix(yTrue,yPred,CMAP='Blues',NORMALIZE=True):
 
     cMat = confusion_matrix(y_true=yTrue_fltr,y_pred=yPred_fltr,labels=LABELS)
 
-    plot_confusion_matrix(cm=cMat,target_names=LABELS,cmap=CMAP,normalize=NORMALIZE)
+    plot_confusion_matrix(cm=cMat,target_names=LABELS,cmap=CMAP,normalize=NORMALIZE,tb=TB,title=title,path=path)
 
 # Source: https://stackoverflow.com/questions/19233771/sklearn-plot-confusion-matrix-with-labels
 def plot_confusion_matrix(cm,
                           target_names,
-                          title='Confusion matrix',
                           cmap=None,
-                          normalize=True):
+                          normalize=True,
+                          tb=False,
+                          title="confMat",
+                          path="runs/confusion_matrix"):
     """
     Given a sklearn confusion matrix (cm), make a nice plot
 
@@ -384,7 +501,7 @@ def plot_confusion_matrix(cm,
     r = np.random.random((h, w))
     imRatio = r.shape[0]/r.shape[1]
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    #plt.title(title)
+    #plt.title('Confusion matrix')
     plt.title("Predicted label")
     plt.colorbar(fraction=0.046*imRatio, pad=0.04)
     plt.grid(None)
@@ -431,4 +548,11 @@ def plot_confusion_matrix(cm,
     plt.tight_layout()
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
-    plt.show()
+   
+    if tb == False:
+        plt.show()
+    else:
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        plt.close()
+        toTensorboard(buf,title,path)

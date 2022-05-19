@@ -265,7 +265,7 @@ def toTensorboard(buf,title,path):
 #                     save the class count
 # title       = Image name (String), use when printing to Tensorboard
 # path        = Path-string, use when printing to Tensorboard
-# TB          = if False output print to standard out, if True print image to Tensorboard
+# TB          = if False output print to standard out, if True plots image to Tensorboard
 
 def printClassMetrics(metrics,classCounts,TB=False,title="Class_Metrics",path="runs/Class_metrics"):   
     classCounts = classCounts[1:len(classCounts)] #REMOVE LABEL 0 = UNCLASSIFIED
@@ -341,7 +341,7 @@ def printClassMetrics(metrics,classCounts,TB=False,title="Class_Metrics",path="r
 # metrics = ndarray with model metrics of shape (n_metrics)
 # title       = Image name (String), use when printing to Tensorboard
 # path        = Path-string, use when printing to Tensorboard
-# TB          = if False output print to standard out, if True print image to Tensorboard
+# TB          = if False output print to standard out, if True plots image to Tensorboard
 def printModelMetrics(metrics,TB=False,title="Model_Metrics",path="runs/Model_Metrics"):
     strlistM = [{}]*len(metrics)
     strlistM[0] = "Accuracy"
@@ -382,12 +382,12 @@ def printModelMetrics(metrics,TB=False,title="Model_Metrics",path="runs/Model_Me
         plt.close()
         toTensorboard(buf,title,path) 
 
-# Prints confusion matrices per class        
+# Plots confusion matrices per class        
 # cMats = ndarray of shape (n_classes, 2, 2) with confusion matrices per class
 # title       = Image name (String), use when printing to Tensorboard
 # path        = Path-string, use when printing to Tensorboard
-# TB          = if False output print to standard out, if True print image to Tensorboard
-def printConfusionMatrices(cMats, TB=False,title="Confusion_Matrices",path="runs/Confusion_Matrices"):
+# TB          = if False output print to standard out, if True plots image to Tensorboard
+def plotConfusionMatrices(cMats, TB=False,title="Confusion_Matrices",path="runs/Confusion_Matrices"):
     strlist2 = strlist
     strlist2[7] = "Industrial,commercial,public,military & private units"
     strlist2[19] = "Permanent crops"
@@ -430,7 +430,7 @@ def printConfusionMatrices(cMats, TB=False,title="Confusion_Matrices",path="runs
         plt.close()
         toTensorboard(buf,title,path)
 
-# Prints a n_class x n_class confusion matrix
+# Plots a N_CLASS X N_CLASS confusion matrix
 # yTrue       = tensor([labels])
 # yPred       = tensor([predictions])
 # CMAP        = The gradient of the values displayed from matplotlib.pyplot.cm
@@ -438,8 +438,8 @@ def printConfusionMatrices(cMats, TB=False,title="Confusion_Matrices",path="runs
 #               If True, plot the proportions
 # title       = Image name (String), use when printing to Tensorboard
 # path        = Path-string, use when printing to Tensorboard
-# TB          = if False output print to standard out, if True print image to Tensorboard
-def printConfusionMatrix(yTrue,yPred,CMAP='Blues',NORMALIZE=True,TB=False,title="Confusion_Matrix",path="runs/Confusion_Matrix"):
+# TB          = if False output print to standard out, if True plots image to Tensorboard
+def plotConfusionMatrix(yTrue,yPred,CMAP='Blues',NORMALIZE=True,TB=False,title="Confusion_Matrix",path="runs/Confusion_Matrix"):
     # Filter out label = 0 (Unclassified)
     yTrue_fltr = yTrue[yTrue != 0]
     yPred_fltr = yPred[yTrue != 0]

@@ -8,6 +8,7 @@ import torch
 import numpy as np
 from tqdm import tqdm
 import argparse
+from datetime import datetime
 from dataset.utils import classCount
 from train.metrics import computeConfMats,valMetric
 
@@ -134,6 +135,9 @@ def dryprint(loss,inp):
     loss=round(loss.item(),2)
     print('Loss:', loss, inp.shape, '| isinf:',isinf(inp),'| min-max (all bands):',(minv,maxv))
 
+    
+    
+############## Config Utils ############    
 # get config file "config.yaml"
 def get_conf(path='config.yaml'):
     with open(path) as file:
@@ -173,3 +177,22 @@ def save_cfg(cfg,savedir):
     with open(os.path.join(savedir,'config.yaml'),'w') as file:
         yaml.dump(config,file)
 
+def get_savedir(cfg):
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M')
+    if cfg.config.dry_run:
+        savedir='runs/dry_run_{}'.format(timestamp)
+    else: 
+        loss = '{WEIGHTED}{CE}{ftl}'.format(WEIGHTED= 'weighted_' if cfg.loss.weight!='None' else '',
+                                        CE='WCE' if cfg.loss.crossEntropy.weighted else 'CE',
+                                        ftl= '_FTL' if cfg.loss.use_focal_tversky else ''
+                                       )
+        band='rgb' if cfg.dataset.kwargs.rgb else 'all'
+        savedir = 'runs/{loss}_{epochs}_epochs_{band}_bands_TP{timeperiod}_{timestamp}'.format(loss=loss,
+                                                                               epochs = cfg.train.epochs,
+                                                                               band=band,
+                                                                               timeperiod=cfg.dataset.kwargs.timeperiod,
+                                                                               timestamp= timestamp
+                                                                              )
+    cfg.config.savedir=savedir
+    return savedir

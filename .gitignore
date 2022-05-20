@@ -13,3 +13,5 @@ experimental*
 test*
 *.pt
 train.ipynb
+train.ipynb
+test_model.ipynb

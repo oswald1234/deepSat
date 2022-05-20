@@ -62,8 +62,9 @@ optimizer: # optimizer parameters
   lr: 0.0001 
 
 loss: # Parameters for loss function
-  # loss = weight*crossEntropy+(1-weight)*focalTverskyLoss 
-  weight: None         
+  # loss = weight*crossEntropy+(1-weight)*focalTverskyLoss  (weight [0,1] no weights = None) 
+  weight: None     
+  use_focal_tversky: true
   crossEntropy:
     weighted: true
   focalTversky_kwargs: # parameters for focalTverskyLoss function

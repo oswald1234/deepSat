@@ -25,23 +25,39 @@ from model.models import UNET
 import numpy as np
 import time
 
-from train.utils import train, test, get_conf, get_config, print_cfg,save_cfg
+from train.utils import train, test, get_conf, get_config, print_cfg,save_cfg,get_savedir
 
 from tqdm import tqdm
 
 import munch
 
 
-maxs=torch.tensor([3272., 2232., 1638., 5288., 3847.76098633, 4062.0222168, 5027.98193359, 5334.12207031,4946.20849609, 3493.02246094])
-mins=torch.tensor([ 0., 0., 0., 0., 0., -0.91460347,  0.,  0.,  0., -0.07313281])
+# maxs=torch.tensor([3272., 2232., 1638., 5288., 3847.76098633, 4062.0222168, 5027.98193359, 5334.12207031,4946.20849609, 3493.02246094])
+# mins=torch.tensor([ 0., 0., 0., 0., 0., -0.91460347,  0.,  0.,  0., -0.07313281])
+
 q_hi = torch.tensor([2102.0, 1716.0, 1398.0, 4732.0, 2434.42919921875, 3701.759765625, 4519.2177734375, 4857.7734375, 3799.80322265625, 3008.8935546875])
 q_lo = torch.tensor([102.0, 159.0, 107.0, 77.0, 106.98081970214844, 79.00384521484375, 86.18966674804688, 70.40167236328125, 50.571197509765625, 36.95356750488281])
-ce_weights =torch.tensor(
-        [0.0000e+00, 5.1362e+02, 1.1472e+02, 4.4708e+01, 1.7092e+01, 1.6746e+01,
-        4.4391e+01, 1.6548e+01, 1.1023e+02, 7.8302e+00, 1.1555e+02, 1.0042e+03,
-        1.6943e+02, 9.5672e+01, 4.4588e+02, 3.8277e+02, 3.2361e+01, 3.2498e+01,
-        2.8015e+00, 2.0817e+04, 3.2352e+00, 0.0000e+00, 0.0000e+00, 1.0000e+00,
-        4.9671e+01, 5.8634e+03, 4.5644e+01, 6.7183e+00])
+
+ce_weights =torch.tensor([
+    0.0000e+00, 5.1362e+02, 1.1472e+02, 4.4708e+01, 1.7092e+01, 1.6746e+01,
+    4.4391e+01, 1.6548e+01, 1.1023e+02, 7.8302e+00, 1.1555e+02, 1.0042e+03,
+    1.6943e+02, 9.5672e+01, 4.4588e+02, 3.8277e+02, 3.2361e+01, 3.2498e+01,
+    2.8015e+00, 2.0817e+04, 3.2352e+00, 0.0000e+00, 0.0000e+00, 1.0000e+00,
+    4.9671e+01, 5.8634e+03, 4.5644e+01, 6.7183e+00])
+
+val_classCounts = torch.tensor([  
+    70285,    8015,   68954,  181556,  534386,  591861,  211741,  473394,
+    91870, 1137165,   66135,     662,  124072,   70080,   15372,   30516,
+    262138,  220720, 3414479,     162, 2646013,       0,       0, 9503818,
+    163217,    1668,  173970, 1499095], 
+    dtype=torch.int32)
+
+train_classCounts= torch.tensor([  
+    535419,   138327,   619285,  1589119,  4156781,  4242609, 1600499, 4293367,
+    644562,  9073507,   614877,    70747,   419341,  742613,  159342,   185612,
+    2195461,  2186212, 25360177,     3413, 21960385, 0,       0,      71047030,
+    1430349,    12117,  1556533, 10575180],
+    dtype=torch.int32)
 
         
 def main():
@@ -63,23 +79,21 @@ def main():
     loader_train_kwargs=cfg.data_loader.train_kwargs
     loader_test_kwargs =cfg.data_loader.test_kwargs
     
-    
     #for testing purpouse 
     dry_run = cfg.config.dry_run 
+    
     # train on GPU if no_cuda is false (and cuda is available) 
     use_cuda = not cfg.config.no_cuda and torch.cuda.is_available()
+    
     # how often (#Batch) to log results in terminal  
     log_intervall=cfg.config.log_intervall 
+    
     # Save model for future inference
     save_model=cfg.config.save_model # Boolean 
       
     # Define savedir
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    savedir = 'runs/{band}_bands_{timeperiod}_vm_{timestamp}'.format(band='rgb' if train_kwargs.rgb else 'all',
-                                                      timeperiod=train_kwargs.timeperiod,
-                                                      timestamp= timestamp)
-    cfg.config.savedir= savedir
-    
+    savedir = get_savedir(cfg) 
+
     # load model for inference 
     load_model = cfg.config.load_model # Boolean
     load_path = cfg.config.load_path # path to saved model
@@ -93,11 +107,6 @@ def main():
     epochs = cfg.train.epochs
     lr = cfg.optimizer.lr
 
-    # parameters for dry run
-    if dry_run:
-        log_intervall=5
-        savedir='runs/test_{}'.format(timestamp)
-        
     #manual seed
     if manual_seed:
         torch.manual_seed(seed)
@@ -107,13 +116,11 @@ def main():
         loader_train_kwargs.update(cfg.cuda_kwargs)
         loader_test_kwargs.update(cfg.cuda_kwargs)
     
-    
     print(' \n PyTorch 3D-Unet running on device:', device)
     print_cfg(cfg)
     
     #writer is for tensorboard
     writer = SummaryWriter(savedir)
-    
     
     # initialize normalizer 
     pNorm = pNormalize(
@@ -175,21 +182,12 @@ def main():
     
     # Compute Cross Entropy Loss Weights
     if cfg.loss.crossEntropy.weighted:
-        #ce_weights_train = torch.zeros(nClasses,dtype=torch.float)
-        #ce_weights_val = torch.zeros(nClasses,dtype=torch.float)
-        #ce_weights_train,_ = crossEntropyLossWeights(training_loader)
-        #ce_weights_train.to(device)
-        #print(ce_weights_train)
-        #ce_weights_val,_ = crossEntropyLossWeights(validation_loader)
-        #ce_weights_val.to(device)
         ce_weights_train = ce_weights
     else:
         ce_weights_train = None
 
-    val_classCounts,_ = classCount(validation_loader)
-    train_classCounts,_= classCount(training_loader)
     
-    
+ 
     # Specify loss functions, ce = Cross Entropy Loss, ftl = Focal Tversky Loss
     loss_ce = nn.CrossEntropyLoss(weight=ce_weights_train,ignore_index=0).to(device)    
     loss_ftl = focalTverskyLoss(**cfg.loss.focalTversky_kwargs)

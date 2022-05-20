@@ -309,18 +309,18 @@ def printClassMetrics(metrics,classCounts,TB=False,title="Class_Metrics",path="r
                     strlist_ua[i]]
             
         df = pd.DataFrame(columns=['Label','UA2018 ID', '% Data', 'Accuracy', 'Precision', 
-                           'Recall', 'F1-Score', 'Intersection over Union', 
-                           'Matthews Correlation Coefficient', 'Description'])
+                           'Recall', 'F1-Score', 'IoU', 'MCC'])
         
         for l, v in d.items():
             p, acc, prc, rcl, f1s, iou, mcc, dsc, ua = v
-            df = df.append({'Label':l+1, 'UA2018 ID':ua, '% Data':p, 'Accuracy':acc, 'Precision':prc, 'Recall':rcl, 'F1-Score':f1s, 
-                   'Intersection over Union':iou, 'Matthews Correlation Coefficient':mcc, 'Description':dsc}, ignore_index=True)
+
+            dataRow = pd.DataFrame({'Label':[l+1], 'UA2018 ID':ua, '% Data':[p.item()], 'Accuracy':[acc], 'Precision':[prc], 
+                        'Recall':[rcl], 'F1-Score':[f1s], 'IoU':[iou], 'MCC':[mcc],'Description':dsc})
+
+            dataRow = dataRow.round({'% Data':2, 'Accuracy':4, 'Precision':4, 'Recall':4, 'F1-Score':4, 'IoU':4, 'MCC':4})
+
+            df = pd.concat([df,dataRow], ignore_index=True)           
             
-        df.reset_index(drop=True, inplace=True)
-        df=df.round({'% Data':2,'Accuracy':4,'Precision':4,'Recall':4,'F1-Score':4,'Intersection over Union':4,
-            'Matthews Correlation Coefficient':4})
-        
         N = 20
         fig = plt.figure(figsize=(20,2+N/3))
         ax = plt.subplot(111, frame_on=False) # No visible frame

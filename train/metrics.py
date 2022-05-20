@@ -2,7 +2,6 @@ from sklearn.metrics import multilabel_confusion_matrix, confusion_matrix
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.transforms import ToTensor
 from PIL import Image
-from datetime import datetime
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -13,6 +12,7 @@ import math
 import warnings
 import itertools
 import io
+import os
 
 # Class descriptions. See classDict.py!
 n_classes_dsc = 28
@@ -248,8 +248,7 @@ def valMetric(cMats,classCounts):
 # title = Image name (String)
 # path  = Path-string
 def toTensorboard(buf,title,path):
-    timestamp = datetime.now().strftime('%Y%m%d_%H')
-    tb_writer = SummaryWriter(path+"/"+timestamp)
+    tb_writer = SummaryWriter(os.path.join(path,title))
     buf.seek(0)
     im = Image.open(buf)
     im = torchvision.transforms.ToTensor()(im)
@@ -267,7 +266,7 @@ def toTensorboard(buf,title,path):
 # path        = Path-string, use when printing to Tensorboard
 # TB          = if False output print to standard out, if True plots image to Tensorboard
 
-def printClassMetrics(metrics,classCounts,TB=False,title="Class_Metrics",path="runs/Class_metrics"):   
+def printClassMetrics(metrics,classCounts,TB=False,title="Class_Metrics",path="runs/"):   
     classCounts = classCounts[1:len(classCounts)] #REMOVE LABEL 0 = UNCLASSIFIED
     classCounts = classCounts/classCounts.sum() * 100
     
@@ -342,7 +341,7 @@ def printClassMetrics(metrics,classCounts,TB=False,title="Class_Metrics",path="r
 # title       = Image name (String), use when printing to Tensorboard
 # path        = Path-string, use when printing to Tensorboard
 # TB          = if False output print to standard out, if True plots image to Tensorboard
-def printModelMetrics(metrics,TB=False,title="Model_Metrics",path="runs/Model_Metrics"):
+def printModelMetrics(metrics,TB=False,title="Model_Metrics",path="runs/"):
     strlistM = [{}]*len(metrics)
     strlistM[0] = "Accuracy"
     strlistM[1] = "Precision"
@@ -387,7 +386,7 @@ def printModelMetrics(metrics,TB=False,title="Model_Metrics",path="runs/Model_Me
 # title       = Image name (String), use when printing to Tensorboard
 # path        = Path-string, use when printing to Tensorboard
 # TB          = if False output print to standard out, if True plots image to Tensorboard
-def plotConfusionMatrices(cMats, TB=False,title="Confusion_Matrices",path="runs/Confusion_Matrices"):
+def plotConfusionMatrices(cMats, TB=False,title="Confusion_Matrices",path="runs/"):
     strlist2 = strlist
     strlist2[7] = "Industrial,commercial,public,military & private units"
     strlist2[19] = "Permanent crops"
@@ -439,7 +438,7 @@ def plotConfusionMatrices(cMats, TB=False,title="Confusion_Matrices",path="runs/
 # title       = Image name (String), use when printing to Tensorboard
 # path        = Path-string, use when printing to Tensorboard
 # TB          = if False output print to standard out, if True plots image to Tensorboard
-def plotConfusionMatrix(yTrue,yPred,CMAP='Blues',NORMALIZE=True,TB=False,title="Confusion_Matrix",path="runs/Confusion_Matrix"):
+def plotConfusionMatrix(yTrue,yPred,CMAP='Blues',NORMALIZE=True,TB=False,title="Confusion_Matrix",path="runs/"):
     # Filter out label = 0 (Unclassified)
     yTrue_fltr = yTrue[yTrue != 0]
     yPred_fltr = yPred[yTrue != 0]
@@ -500,11 +499,15 @@ def plot_confusion_matrix(cm,
     ax = fig.add_subplot(1,1,1)
     ax.tick_params(axis="x", bottom=True, top=True, labelbottom=True, labeltop=True)
     ax.tick_params(axis="y", left=True, labelleft=True)
+    ax.spines['bottom'].set_color('black')
+    ax.spines['top'].set_color('black')
+    ax.spines['right'].set_color('black')
+    ax.spines['left'].set_color('black')
     r = np.random.random((h, w))
     imRatio = r.shape[0]/r.shape[1]
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     #plt.title('Confusion matrix')
-    plt.title("Predicted label")
+    plt.title("Predicted label", fontsize=15)
     plt.colorbar(fraction=0.046*imRatio, pad=0.04)
     plt.grid(False)
 
@@ -550,8 +553,8 @@ def plot_confusion_matrix(cm,
                      fontsize=8, fontweight="normal")
 
     plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
+    plt.ylabel('True label', fontsize=15)
+    plt.xlabel('Predicted label', fontsize=15)
    
     if tb == False:
         plt.show()

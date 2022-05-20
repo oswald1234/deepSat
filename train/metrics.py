@@ -495,7 +495,7 @@ def plot_confusion_matrix(cm,
         cmap = plt.get_cmap('Blues')
 
     h = 16
-    w = 15
+    w = 16
     fig = plt.figure(figsize=(h, w))
     ax = fig.add_subplot(1,1,1)
     ax.tick_params(axis="x", bottom=True, top=True, labelbottom=True, labeltop=True)
@@ -518,34 +518,36 @@ def plot_confusion_matrix(cm,
         #cm = cm.astype('float') / cm.sum()
 
     #thresh = cm.max() / 1.5 if normalize else cm.max() / 2
+
+    diag = np.diag_indices_from(cm)
     
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         if normalize:
-            if cm[i,j] == np.diag(cm)[i]:
-                plt.text(j, i, "{:0.2%}".format(cm[i, j]),
+            if (i == diag[0][j]) & (j == diag[1][j]):
+                plt.text(i, j, "{:0.3%}".format(cm[i, j]),
                      horizontalalignment="center",
                      color="lime",
-                     fontsize=8, fontweight="roman")
+                     fontsize=8, fontweight="normal")
 
-            plt.text(j, i, "{:0.2%}".format(cm[i, j]),
+            plt.text(i, j, "{:0.3%}".format(cm[i, j]),
                      horizontalalignment="center",
                      #color="red" if cm[i, j] > thresh else "black",
                      #color="grey",
-                     color="red" if (cm[i,j] == cm[i,:].max()) & (cm[i,j] != np.diag(cm)[i]) else "dimgrey",
-                     fontsize=8, fontweight="roman")
+                     color="red" if (cm[i,j] == cm[:,j].max()) & (cm[i,j] > cm[diag[0][j],diag[1][j]]) else "dimgrey",
+                     fontsize=8, fontweight="normal")
         else:
-            if cm[i,j] == np.diag(cm)[i]:
-                plt.text(j, i, "{:0.2%}".format(cm[i, j]),
+            if (i == diag[0][j]) & (j == diag[1][j]):
+                plt.text(i, j, "{:,}".format(cm[i, j]),
                     horizontalalignment="center",
                     color="lime",
-                    fontsize=8, fontweight="roman")
+                    fontsize=8, fontweight="normal")
                     
-            plt.text(j, i, "{:,}".format(cm[i, j]),
+            plt.text(i, j, "{:,}".format(cm[i, j]),
                      horizontalalignment="center",
                      #color="red" if cm[i, j] > thresh else "black",
                      #color="grey",
-                     color="red" if (cm[i,j] == cm[i,:].max()) & (cm[i,j] != np.diag(cm)[i]) else "dimgrey",
-                     fontsize=8, fontweight="roman")
+                     color="red" if (cm[i,j] == cm[:,j].max()) & (cm[i,j] > cm[diag[0][j],diag[1][j]]) else "dimgrey",
+                     fontsize=8, fontweight="normal")
 
     plt.tight_layout()
     plt.ylabel('True label')

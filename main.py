@@ -213,7 +213,7 @@ def main():
     
  
     # Specify loss functions, ce = Cross Entropy Loss, ftl = Focal Tversky Loss
-    loss_ce = nn.CrossEntropyLoss(weight=ce_weights_train,ignore_index=0).to(device)    
+    loss_ce = nn.CrossEntropyLoss(weight=ce_weights_train,ignore_index=[0,21,22]).to(device)    
     loss_ftl = focalTverskyLoss(**cfg.loss.focalTversky_kwargs)
 
     # initiate best_vloss

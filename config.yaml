@@ -5,15 +5,14 @@ config:
   # no_cuda: false to run on GPU if available
   no_cuda: false
 
+  #Tensorboard
+  tensorboard: false
 
-  # Tensorboard 
-  tensorboard: false 
-  # how often to log to tensorboard in a training epoch, e.g. 0 = never , log for every 100th batch
+  #how often to log to tensorboard in a training epoch, e.g. 0 = never , log for every 100th batch
   log_intervall: 10
-  
-
-  # to reproduce results, note that this only affects pytorch seed
+  #to reproduce results, note that this only affects pytorch seed
   manual_seed: false
+
   seed: 1
 
   # to save model for future inference
@@ -49,10 +48,10 @@ dataset: # dataset parameters
   test_kwargs: # parameters unique for test datataset
     # which data to use one of [test, train, ,val]
     data: val
-    
+
   val_kwargs: # parameters unique for val dataset
     # which data to use one of [test, train, ,val]
-    data: val	
+    data: val
 
 data_loader: # dataloader parameters
   train_kwargs: # train dataloader parameters
@@ -63,14 +62,13 @@ data_loader: # dataloader parameters
     batch_size: 10
     shuffle: false
 
-
 optimizer: # optimizer parameters
-  # learning rate 
-  lr: 0.0001 
+  # learning rate
+  lr: 0.0001
 
 loss: # Parameters for loss function
-  # loss = weight*crossEntropy+(1-weight)*focalTverskyLoss  (weight [0,1] no weights = None) 
-  weight: None     
+  # loss = weight*crossEntropy+(1-weight)*focalTverskyLoss  (weight [0,1] no weights = None)
+  weight: None
   use_focal_tversky: true
   crossEntropy:
     weighted: true
@@ -84,7 +82,7 @@ loss: # Parameters for loss function
     # smooth : Smoothing factor, scalar (have seen 1e-6 and 1 used as values)
     smooth: 1
     # gamma  : Scalar [1,3]
-    gamma : 0.75
+    gamma: 0.75
     # ignore_index
     ignore_index: 0
 

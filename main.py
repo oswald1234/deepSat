@@ -59,6 +59,14 @@ train_classCounts= torch.tensor([
     1430349,    12117,  1556533, 10575180],
     dtype=torch.int32)
 
+test_classCounts=torch.tensor([
+    64911,   10252,   69500,  248063,  565968,  585386,  198120,  558537,
+    71158, 1161760,   81514,    4988,   57822,   77373,   25242,   19492,
+    329747,  244345, 3099608,       0, 2497249,       0,       0, 8873105,
+    128908,    1642,  235669, 1433481], 
+    dtype=torch.int32)
+
+
         
 def main():
     # get config file
@@ -124,7 +132,10 @@ def main():
     print_cfg(cfg)
     
     #writer is for tensorboard
-    writer = SummaryWriter(savedir)
+    train_writer = SummaryWriter(os.path.join(savedir,'train_LOSS'))
+    val_writer = SummaryWriter(os.path.join(savedir,'val_LOSS'))
+    
+    
     
     # initialize normalizer 
     pNorm = pNormalize(
@@ -173,10 +184,7 @@ def main():
     elif cfg.dataset.test_kwargs.data == 'test':
         test_set= sentinel(**test_kwargs)
         test_loader=DataLoader(test_set, **loader_test_kwargs)
-        # Get class counts for dataset
-        test_classCounts,_ = classCount(test_loader)
-        print(test_classCounts)
-        print('Test set is used for final testing. \n Test set has {} instances'.format(len(test_set)))
+        print('Test set is used for final testing. \nTest set has {} instances'.format(len(test_set)))
     
     
     # Report split sizes 
@@ -222,7 +230,7 @@ def main():
         if not load_model:
             # Train one epoch
             tic = time.perf_counter() 
-        avg_loss = train(cfg, model, device, training_loader, optimizer, loss_ce, loss_ftl, epoch, writer,train_classCounts)
+        avg_loss = train(cfg, model, device, training_loader, optimizer, loss_ce, loss_ftl, epoch, train_writer,train_classCounts)
             
              
             
@@ -235,11 +243,16 @@ def main():
         print('Epoch: {}, Time epoch (min): {}, total_time (h): {}, Loss train: {}, Loss valid: {}, IOU: {}'.format(epoch,time_epoch,time_est,round(avg_loss,2), round(avg_vloss,2),round(iou.item(),2)))
 
         # (tensorboard) Log the running loss averaged per batch for both training and validation
-        writer.add_scalars('Training vs. Validation Loss',
-                           {'Training': avg_loss, 'Validation': avg_vloss, 'IOU':iou.item()},
-                           epoch
-                           )
-        writer.flush()
+       
+
+        
+        train_writer.add_scalar('LOSS',avg_loss,epoch)
+        val_writer.add_scalar('LOSS',avg_vloss,epoch)
+        val_writer.add_scalar('IOU',iou.item(),epoch)
+        train_writer.flush()
+        val_writer.flush()
+        
+        
 
         # track best performance, and save the model's state
         if avg_vloss < best_vloss:

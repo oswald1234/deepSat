@@ -9,9 +9,12 @@ import numpy as np
 from tqdm import tqdm
 import argparse
 from datetime import datetime
+
+from zmq import device
 from dataset.utils import classCount
 from train.metrics import computeConfMats,valMetric
 
+from train.metrics import computeConfMats, computeClassMetrics, wma, printClassMetrics, printModelMetrics, plotConfusionMatrices, plotConfusionMatrix
 
 # train one epoch
 def train(cfg, model, device, train_loader, optimizer, loss_ce, loss_ftl, epoch, tb_writer, train_classCounts):
@@ -118,12 +121,52 @@ def test(cfg, model, device, validation_loader, loss_ce, loss_ftl,val_classCount
     iou = valMetric(cMats,val_classCounts)
     return (avg_vloss,iou) 
 
+def eval(cfg,best_model,device,test_loader,test_classCounts):
+
+    best_model.eval()
+    cMats=torch.zeros((cfg.config.nClasses-1,2,2),dtype=torch.int32)
+    predarr = torch.tensor([],dtype=torch.int32,device=device)   
+    labelarr = torch.tensor([],dtype=torch.int32,device=device)
+    
+    with torch.no_grad():
+        for images, labels in test_loader:
+            outputs = best_model(images)
+            preds = torch.nn.functional.softmax(outputs,dim=1)
+            preds = torch.argmax(preds,dim=1)
+            cMats += computeConfMats(labels,preds)
+          
+            # Flatten dimensions BxHxW --> B*H*W and concatenate
+            predarr = torch.cat((predarr, preds.reshape(-1)))
+            labelarr = torch.cat(( labelarr, labels.reshape(-1)))
+    
+    report_metrics(cMats,labelarr,predarr,test_classCounts,TB=cfg.config.tensorboard,path=cfg.config.savedir)
+
 
     
-    
-    
-    
 ########### helper functions ############# 
+
+
+def report_metrics(cMats,labelarr,predarr,test_classCounts,TB=True,path='runs/'):
+     # Compute class and model metrics
+    class_metrics = computeClassMetrics(cMats)
+    model_metrics = wma(class_metrics,test_classCounts)
+
+    # Print model metrics
+    printModelMetrics(model_metrics)
+    # Print model metrics to TENSORBOARD. Default path = 'runs/Model_Metrics'
+    printModelMetrics(model_metrics,TB=TB,path=path)
+   
+    # Print class Metrics
+    printClassMetrics(class_metrics,test_classCounts)
+    printClassMetrics(class_metrics,test_classCounts,TB=TB,path=path)
+    
+    # Plot confusion matrices to TENSORBOARD. Default path = 'runs/Confusion_Matrices'
+    plotConfusionMatrices(cMats,TB=TB,path=path)
+
+    # Plot N_CLASS X N_CLASS confusion matrix
+    #plotConfusionMatrix(yTrue=labelarr,yPred=predarr,path=path)
+
+    plotConfusionMatrix(yTrue=labelarr,yPred=predarr,TB=TB,path=path)
 
 # check if tensor contains inf values
 def isinf(tensor):
@@ -135,8 +178,9 @@ def dryprint(loss,inp):
     loss=round(loss.item(),2)
     print('Loss:', loss, inp.shape, '| isinf:',isinf(inp),'| min-max (all bands):',(minv,maxv))
 
-    
-    
+
+
+
 ############## Config Utils ############    
 # get config file "config.yaml"
 def get_conf(path='config.yaml'):

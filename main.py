@@ -65,19 +65,23 @@ def main():
     cfg = get_config()
 
     nClasses = len(list(set(val['train_id'] for val in class_dict.values()))) + 1
+    print(nClasses)
     cfg.config.nClasses = nClasses
     
     # update unique dataset train kwargs with non unique dataset kwargs 
     cfg.dataset.train_kwargs.update(cfg.dataset.kwargs)
     cfg.dataset.test_kwargs.update(cfg.dataset.kwargs)
+    cfg.dataset.val_kwargs.update(cfg.dataset.kwargs)
     
     # parameters for dataset 
     train_kwargs = cfg.dataset.train_kwargs
+    val_kwargs = cfg.dataset.val_kwargs
     test_kwargs = cfg.dataset.test_kwargs
     
     # parameters for dataloaders 
     loader_train_kwargs=cfg.data_loader.train_kwargs
     loader_test_kwargs =cfg.data_loader.test_kwargs
+    
     
     #for testing purpouse 
     dry_run = cfg.config.dry_run 
@@ -135,7 +139,7 @@ def main():
         transforms.RandomApply(torch.nn.ModuleList([
             transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 1)),
             transforms.ColorJitter()
-            ]),p=0.3),
+            ]),p=0.2),
         pNorm
     ])
     
@@ -155,14 +159,26 @@ def main():
                             transforms=imlab_transforms
                            )
     
-    validation_set = sentinel(**test_kwargs,
+    validation_set = sentinel(**val_kwargs,
                               img_transform=pNorm 
                              )
-
+    
     # Create data loaders for our datasets; shuffle for training, not for validation
     training_loader = DataLoader(training_set, **loader_train_kwargs)
     validation_loader = DataLoader(validation_set, **loader_test_kwargs)
 
+    if cfg.dataset.test_kwargs.data == 'val':
+        test_loader = validation_loader
+        print('Validation set is used for final testing')
+    elif cfg.dataset.test_kwargs.data == 'test':
+        test_set= sentinel(**test_kwargs)
+        test_loader=DataLoader(test_set, **loader_test_kwargs)
+        # Get class counts for dataset
+        test_classCounts,_ = classCount(test_loader)
+        print(test_classCounts)
+        print('Test set is used for final testing. \n Test set has {} instances'.format(len(test_set)))
+    
+    
     # Report split sizes 
     print('Training set has {} instances'.format(len(training_set)))
     print('Validation set has {} instances\n'.format(len(validation_set)))    
@@ -232,12 +248,18 @@ def main():
             # save model for inference
             if save_model:
                 model_path = os.path.join(savedir,'saved_model/model_epoch_{}.pt'.format(epoch))
+                best_model_state_dict = model.state_dict()
                 if not os.path.exists(os.path.dirname(model_path)):
                     os.makedirs(os.path.dirname(model_path))
-                torch.save(model.state_dict(), model_path)
+                torch.save(best_model_state_dict, model_path)
                 
-                
-        
+    # best model evaluation
+    model.load_state_dict(best_model_state_dict,map_location=torch.device(device))
+    eval = eval(cfg,model,device,test_loader,test_classCounts)
+
+
+
+    
 
 
 if __name__ == '__main__':

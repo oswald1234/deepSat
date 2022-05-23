@@ -1,12 +1,16 @@
 config:
   # for testing purpouses
-  dry_run: false
+  dry_run: true
 
   # no_cuda: false to run on GPU if available
   no_cuda: false
 
+
+  # Tensorboard 
+  tensorboard: false 
   # how often to log to tensorboard in a training epoch, e.g. 0 = never , log for every 100th batch
   log_intervall: 10
+  
 
   # to reproduce results, note that this only affects pytorch seed
   manual_seed: false
@@ -45,7 +49,10 @@ dataset: # dataset parameters
   test_kwargs: # parameters unique for test datataset
     # which data to use one of [test, train, ,val]
     data: val
-
+    
+  val_kwargs: # parameters unique for val dataset
+    # which data to use one of [test, train, ,val]
+    data: val	
 
 data_loader: # dataloader parameters
   train_kwargs: # train dataloader parameters

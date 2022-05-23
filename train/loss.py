@@ -138,6 +138,30 @@ def tverskyIndex(preds, targets, smooth=1, alpha=0.7, beta=0.3):
 # beta    = Scalar (>= 0)
 # gamma   = Scalar [1,3]
 # smooth  = Smoothing factor, scalar (have seen 1e-6 and 1 used as values)
+"""
+class focalTverskyLoss(nn.Module):
+    def __init__(self, smooth=1,alpha=0.7,beta=0.3, gamma=4/3,ignore_index=0):
+        super(focalTverskyLoss, self).__init__()
+        self.smooth=smooth
+        self.alpha=alpha
+        self.beta=beta
+        self.gamma=gamma
+        self.ignore_index=ignore_index
+
+    def forward(self, inputs, targets):
+
+        if self.ignore_index: 
+            NUM_CLASSES  = input.shape[1]
+            indices=torch.tensor(np.delete(np.arange(0,NUM_CLASSES),self.ignore_index ))
+            input = input.index_select(dim=1,index=indices)
+        
+        inputs = torch.nn.functional.softmax(inputs, dim=1)
+        preds = torch.argmax(inputs,dim=1)
+
+        fTverskyLoss = ((1 - tverskyIndex(preds, targets, self.smooth, self.alpha, self.beta)) ** self.gamma).sum()
+
+        return fTverskyLoss
+
 
 class focalTverskyLoss(nn.Module):
     def __init__(self, smooth=1,alpha=0.7,beta=0.3, gamma=4/3,ignore_index=0):
@@ -161,3 +185,48 @@ class focalTverskyLoss(nn.Module):
         fTverskyLoss = ((1 - tverskyIndex(preds, targets, self.smooth, self.alpha, self.beta)) ** self.gamma).sum()
 
         return fTverskyLoss
+"""
+import torch.nn as nn
+import torch.nn.functional as F
+
+class focalTverskyLoss(nn.Module):
+    def __init__(self,smooth=1e-6,alpha=0.5,beta=0.5,gamma=0.5,ignore_index=[0,21,22]):
+        super(focalTverskyLoss, self).__init__()
+        self.ignore_index=ignore_index
+        self.GAMMA = gamma
+        self.BETA=beta
+        self.ALPHA=alpha
+        self.smooth=smooth
+
+
+    def forward(self, inputs, targets):
+        inputs=inputs.flatten(start_dim=-2)
+        targets=targets.flatten(start_dim=-2)
+        NUM_CLASSES  = inputs.shape[1]
+        targets = F.one_hot(targets,num_classes=NUM_CLASSES)
+
+        if self.ignore_index: 
+            indices=torch.tensor(np.delete(np.arange(0,NUM_CLASSES),self.ignore_index ))
+            inputs = inputs.index_select(dim=1,index=indices)
+            targets = targets.index_select(dim=2,index=indices)
+
+        
+          
+        #comment out if your model contains a sigmoid or equivalent activation layer
+        inputs = F.softmax(inputs,dim=1)       
+        
+        # transpose and flatten 
+        inputs=inputs.transpose(2,1)
+        inputs = inputs.flatten(end_dim=-2)
+        targets = targets.flatten(end_dim=-2)
+     
+        #True Positives, False Positives & False Negatives
+        TP = (inputs * targets).sum(dim=0)
+        FP = ((1-targets) * inputs).sum(dim=0)
+        FN = (targets * (1-inputs)).sum(dim=0)
+        
+        Tversky = (TP + self.smooth) / (TP + self.ALPHA * FN + self.BETA * FP + self.smooth)
+     
+        FocalTversky = (1 - Tversky)**self.GAMMA
+  
+        return FocalTversky

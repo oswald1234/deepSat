@@ -73,7 +73,6 @@ def main():
     cfg = get_config()
 
     nClasses = len(list(set(val['train_id'] for val in class_dict.values()))) + 1
-    print(nClasses)
     cfg.config.nClasses = nClasses
     
     # update unique dataset train kwargs with non unique dataset kwargs 
@@ -213,8 +212,8 @@ def main():
     
  
     # Specify loss functions, ce = Cross Entropy Loss, ftl = Focal Tversky Loss
-    loss_ce = nn.CrossEntropyLoss(weight=ce_weights_train,ignore_index=[0,21,22]).to(device)    
-    loss_ftl = focalTverskyLoss(**cfg.loss.focalTversky_kwargs)
+    loss_ce = nn.CrossEntropyLoss(weight=ce_weights_train,ignore_index=0).to(device)    
+    loss_ftl = focalTverskyLoss(**cfg.loss.focalTversky_kwargs).to(device)
 
     # initiate best_vloss
     best_vloss = 1_000_000.
@@ -232,7 +231,8 @@ def main():
             tic = time.perf_counter() 
         avg_loss = train(cfg, model, device, training_loader, optimizer, loss_ce, loss_ftl, epoch, train_writer,train_classCounts)
             
-             
+        if np.isnan(avg_loss):
+            break
             
         # validate / test
         avg_vloss,iou = test(cfg, model, device, validation_loader, loss_ce,loss_ftl,val_classCounts)
@@ -267,7 +267,7 @@ def main():
                 torch.save(best_model_state_dict, model_path)
                 
     # best model evaluation
-    model.load_state_dict(best_model_state_dict,map_location=torch.device(device))
+    model.load_state_dict(best_model_state_dict)
     eval = eval(cfg,model,device,test_loader,test_classCounts)
 
 

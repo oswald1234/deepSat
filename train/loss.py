@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 
 """ 
 # inputs  = model output, tensor(B,C,H,W), B = Batch Size, C = Classes, H = Height, W = Width
@@ -37,7 +38,7 @@ import torch.nn.functional as F
 # TVERSKY FOCAL LOSS MULTICLASS
 
 class focalTverskyLoss(nn.Module):
-    def __init__(self,smooth=1e-6,alpha=0.5,beta=0.5,gamma=0.5,ignore_index=[0,21,22]):
+    def __init__(self,smooth=1,alpha=0.7,beta=0.3,gamma=0.75,ignore_index=[0,21,22]):
         super(focalTverskyLoss, self).__init__()
         self.ignore_index=ignore_index
         self.GAMMA = gamma
@@ -52,7 +53,7 @@ class focalTverskyLoss(nn.Module):
         targets = F.one_hot(targets,num_classes=NUM_CLASSES)
 
         if self.ignore_index: 
-            indices=torch.tensor(np.delete(np.arange(0,NUM_CLASSES),self.ignore_index ))
+            indices=torch.tensor(np.delete(np.arange(0,NUM_CLASSES),self.ignore_index ),device='cuda')
             inputs = inputs.index_select(dim=1,index=indices)
             targets = targets.index_select(dim=2,index=indices)
  

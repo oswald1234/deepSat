@@ -17,3 +17,4 @@ train.ipynb
 test_model.ipynb
 *.ipynb
 train.ipynb
+.vscode/launch.json

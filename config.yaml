@@ -1,6 +1,6 @@
 config:
   # for testing purpouses
-  dry_run: true
+  dry_run: false
 
   # no_cuda: false to run on GPU if available
   no_cuda: false
@@ -84,7 +84,7 @@ loss: # Parameters for loss function
     # gamma  : Scalar [1,3]
     gamma: 0.75
     # ignore_index
-    ignore_index: 0
+    ignore_index: [0,21,22]
 
 cuda_kwargs: # GPU parameters
   num_workers: 1

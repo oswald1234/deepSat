@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from zmq import device
 
 """ 
 # inputs  = model output, tensor(B,C,H,W), B = Batch Size, C = Classes, H = Height, W = Width
@@ -53,7 +54,7 @@ class focalTverskyLoss(nn.Module):
         targets = F.one_hot(targets,num_classes=NUM_CLASSES)
 
         if self.ignore_index: 
-            indices=torch.tensor(np.delete(np.arange(0,NUM_CLASSES),self.ignore_index ),device='cuda')
+            indices=torch.tensor(np.delete(np.arange(0,NUM_CLASSES),self.ignore_index ))
             inputs = inputs.index_select(dim=1,index=indices)
             targets = targets.index_select(dim=2,index=indices)
  

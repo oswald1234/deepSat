@@ -25,9 +25,7 @@ from model.models import UNET
 import numpy as np
 import time
 
-from train.utils import train, test, get_conf, get_config, print_cfg,save_cfg,get_savedir
-
-from tqdm import tqdm
+from train.utils import train, test, get_conf, get_config, print_cfg,save_cfg,get_savedir, eval
 
 import munch
 
@@ -268,7 +266,7 @@ def main():
                 
     # best model evaluation
     model.load_state_dict(best_model_state_dict)
-    eval = eval(cfg,model,device,test_loader,test_classCounts)
+    evals = eval(cfg,model,device,test_loader,test_classCounts)
 
 
 

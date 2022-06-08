@@ -14,6 +14,7 @@ import itertools
 import io
 import os
 
+
 # Class descriptions. See classDict.py!
 n_classes_dsc = 28
  
@@ -563,3 +564,158 @@ def plot_confusion_matrix(cm,
         plt.savefig(buf, format='png')
         plt.close()
         toTensorboard(buf,title,path)
+
+
+# Plots a Sample RGB,LABEL,PRED,and corecctly predicted
+# plot_sample(pred[i,:,:],labels[i,:,:], images[i,0:3,:,:]  ) 
+# pred       = tensor([prediction])
+# label      = tensor([label])
+# rgb        = tensor([RGB channels of X])
+# classMax   = highest class value (27)
+# classMin   = lowest class value (0)
+# fig_scale  = for size scaling of figures
+# path        = Path-string, where to save figure, if save_fig = True
+
+def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,path=None):
+    
+    corrPred=torch.eq(pred,labl)
+    predratio = torch.sum(corrPred)/corrPred.numel()*100
+    cmap = plt.get_cmap('Spectral', classMax - classMin + 1)
+
+    nrow = 1
+    ncol = 4
+    
+    gridspec_kw ={ 
+                "wspace": 0.0,
+                "hspace": 0.0, 
+                "top": 1.-0.5/(fig_scale*nrow+1),
+                "bottom": 0.5/(fig_scale*nrow+1), 
+                "left": 0.5/(fig_scale*ncol+1), 
+                "right": 1-0.5/(fig_scale*ncol+1)
+                }
+    
+    fig_kw={
+        "figsize": (fig_scale*ncol+1,fig_scale*nrow+1)
+        }
+
+    fig, axs =plt.subplots(nrow,ncol,gridspec_kw=gridspec_kw , **fig_kw)
+
+    # Adds a subplot at the 1st column
+    axs[0].imshow(rgb.permute(1,2,0).numpy())
+    axs[0].axis('off')
+    axs[0].set_title('RGB')
+    axs[0].set_xticklabels([])
+    axs[0].set_yticklabels([])
+
+    # Adds a subplot at the 2nd column
+    map=axs[1].imshow(labl,cmap=cmap,vmin=(classMin-0.5),vmax=(classMax+0.5))          
+    axs[1].axis('off')
+    axs[1].set_title("Label (%d classes)"%(len(torch.unique(labl))))
+    axs[1].set_xticklabels([])
+    axs[1].set_yticklabels([])
+
+    # Adds a subplot at the 3rd column
+    axs[2].imshow(pred,cmap=cmap,vmin=(classMin-0.5),vmax=(classMax+0.5))
+    axs[2].axis('off')
+    axs[2].set_title("Prediction (%d classes)"%(len(torch.unique(pred))))
+    axs[2].set_xticklabels([])
+    axs[2].set_yticklabels([])
+
+    # Adds a subplot at the 4th column
+    axs[3].imshow(corrPred,cmap="binary",vmin=0,vmax=1)
+    axs[3].axis('off')
+    axs[3].set_title("%4.2f %% Predicted Correct"%(predratio)) 
+    axs[3].set_xticklabels([])
+    axs[3].set_yticklabels([])
+
+    fig.colorbar(map, ax=axs, cmap=cmap, ticks=np.arange(classMin,classMax + 1),shrink=0.6,location='bottom')
+
+    if save_fig:
+        if path:
+            if not os.path.exists(path):
+                os.makedirs(path)
+
+            path= os.path.join(path,'grid.png')
+        else:
+            path= 'sample.png'
+
+        plt.savefig(path)
+    #plt.show()
+
+
+
+# Plots a batch of RGB,LABEL,PRED,and corecctly predicted
+# plot_batch(pred,labels, images) 
+# pred       = tensor([prediction])
+# label      = tensor([label])
+# rgb        = tensor([RGB channels of X])
+# classMax   = highest class value (27)
+# classMin   = lowest class value (0)
+# fig_scale  = for size scaling of figures
+# path        = Path-string, where to save figure, if save_fig = True
+def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,path=None):
+    
+    corrPred=torch.eq(pred,labl)
+    predratio = torch.sum(corrPred)/corrPred.numel()*100
+    cmap = plt.get_cmap('Spectral', classMax - classMin + 1)
+
+    nrow = pred.shape[0]
+    ncol = 4
+    
+
+    gridspec_kw ={ 
+                "wspace": 0.0,
+                "hspace": 0.0, 
+                "top": 1.-0.5/(fig_scale*nrow+1),
+                "bottom": 0.5/(fig_scale*nrow+1), 
+                "left": 0.5/(fig_scale*ncol+1), 
+                "right": 1-0.5/(fig_scale*ncol+1)
+                }
+    
+    fig_kw={
+        "figsize": (fig_scale*ncol+1,fig_scale*nrow+1)
+        }
+
+    fig, axs =plt.subplots(nrow+1,ncol, gridspec_kw=gridspec_kw , **fig_kw)
+
+    for i in range(nrow):
+        # Adds a subplot at the 1st column
+        axs[i,0].imshow(rgb[i,0:3,:,:].permute(1,2,0).numpy())
+        axs[i,0].axis('off')
+        axs[i,0].set_xticklabels([])
+        axs[i,0].set_yticklabels([])
+
+        # Adds a subplot at the 2nd column
+        map=axs[i,1].imshow(labl[i,:,:],cmap=cmap,vmin=(classMin-0.5),vmax=(classMax+0.5))          
+        axs[i,1].axis('off')
+        axs[i,1].set_xticklabels([])
+        axs[i,1].set_yticklabels([])
+
+        # Adds a subplot at the 3rd column
+        axs[i,2].imshow(pred[i,:,:],cmap=cmap,vmin=(classMin-0.5),vmax=(classMax+0.5))
+        axs[i,2].axis('off')
+        axs[i,2].set_xticklabels([])
+        axs[i,2].set_yticklabels([])
+
+        # Adds a subplot at the 4th column
+        axs[i,3].imshow(corrPred[i,:,:],cmap="binary",vmin=0,vmax=1)
+        axs[i,3].axis('off')
+        axs[i,3].set_xticklabels([])
+        axs[i,3].set_yticklabels([])
+
+    # for colorbar
+    for j in range(ncol):
+        axs[i+1,j].axis('off')
+    fig.colorbar(map, ax=axs[i+1,:4], cmap=cmap, ticks=np.arange(classMin,classMax + 1),shrink=0.6,location='bottom')
+
+    if save_fig:
+        if path:
+            if not os.path.exists(path):
+                os.makedirs(path)
+
+            path= os.path.join(path,'grid.png')
+        else:
+            path= 'grid.png'
+
+        plt.savefig(path)
+    #plt.show()

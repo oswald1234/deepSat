@@ -576,7 +576,7 @@ def plot_confusion_matrix(cm,
 # fig_scale  = for size scaling of figures
 # path        = Path-string, where to save figure, if save_fig = True
 
-def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,path=None):
+def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,path=None,fn='sample.png'):
     
     corrPred=torch.eq(pred,labl)
     predratio = torch.sum(corrPred)/corrPred.numel()*100
@@ -635,12 +635,13 @@ def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,p
             if not os.path.exists(path):
                 os.makedirs(path)
 
-            path= os.path.join(path,'grid.png')
+            path= os.path.join(path,fn)
         else:
-            path= 'sample.png'
+            path= fn
 
         plt.savefig(path)
-    #plt.show()
+    else:
+        plt.show()
 
 
 
@@ -653,7 +654,7 @@ def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,p
 # classMin   = lowest class value (0)
 # fig_scale  = for size scaling of figures
 # path        = Path-string, where to save figure, if save_fig = True
-def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,path=None):
+def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,path=None,fn='batch_sample'):
     
     corrPred=torch.eq(pred,labl)
     predratio = torch.sum(corrPred)/corrPred.numel()*100
@@ -713,9 +714,10 @@ def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,pa
             if not os.path.exists(path):
                 os.makedirs(path)
 
-            path= os.path.join(path,'grid.png')
+            path= os.path.join(path,fn)
         else:
-            path= 'grid.png'
+            path= fn
 
         plt.savefig(path)
-    #plt.show()
+    else:   
+        plt.show()

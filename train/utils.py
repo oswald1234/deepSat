@@ -12,9 +12,7 @@ from datetime import datetime
 
 from zmq import device
 from dataset.utils import classCount
-from train.metrics import computeConfMats,valMetric
-
-from train.metrics import computeConfMats, computeClassMetrics, wma, printClassMetrics, printModelMetrics, plotConfusionMatrices, plotConfusionMatrix
+from train.metrics import computeConfMats, valMetric, computeClassMetrics, wma, printClassMetrics, printModelMetrics, plotConfusionMatrices, plotConfusionMatrix,plot_batch,plot_sample
 
 # train one epoch
 def train(cfg, model, device, train_loader, optimizer, loss_ce, loss_ftl, epoch, tb_writer, train_classCounts):
@@ -140,10 +138,33 @@ def eval(cfg,best_model,device,test_loader,test_classCounts):
             labelarr = torch.cat(( labelarr, labels.reshape(-1)))
     
     report_metrics(cMats,labelarr,predarr,test_classCounts,TB=cfg.config.tensorboard,path=cfg.config.savedir)
-
-
-    
+    plot_batch(preds,labels,images)
+    plot_best_worst(preds,labels,images)
+ 
 ########### helper functions ############# 
+
+# to plot best and worst prediction in batch
+# input batch of preds labels and images
+# finds best and worst prediction and plots them
+# uses function plot_sample from train.metrics.py 
+def plot_best_worst(preds,labels,images):
+
+    #plot sample of best and worst in batch
+    sum_eq = torch.sum(torch.eq(preds,labels),dim=[1,2])
+
+    best= torch.where(torch.max(sum_eq)==sum_eq)
+    worst = torch.where(torch.min(sum_eq)==sum_eq)
+
+    wlabl=labels[worst].squeeze()
+    wpred=preds[worst].squeeze()
+    wimg=images[worst].squeeze()
+
+    blabl=labels[best].squeeze()
+    bpred=preds[best].squeeze()
+    bimg=images[best].squeeze()
+
+    plot_sample(wpred,wlabl, wimg[0:3,:,:],fn='batch_worst.png') 
+    plot_sample(bpred,blabl, bimg[0:3,:,:],fn='batch_best.png')
 
 
 def report_metrics(cMats,labelarr,predarr,test_classCounts,TB=True,path='runs/'):

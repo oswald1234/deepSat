@@ -6,7 +6,7 @@ config:
   no_cuda: false
 
   #Tensorboard
-  tensorboard: false
+  tensorboard: true
 
   #how often to log to tensorboard in a training epoch, e.g. 0 = never , log for every 100th batch
   log_intervall: 10
@@ -29,7 +29,7 @@ config:
 
 # parameters for  training
 train:
-  epochs: 100
+  epochs: 75
 
 # parameters for Dataset
 dataset: # dataset parameters
@@ -82,10 +82,10 @@ loss: # Parameters for loss function
     # smooth : Smoothing factor, scalar (have seen 1e-6 and 1 used as values)
     smooth: 1
     # gamma  : Scalar [1,3]
-    gamma: 0.75
+    gamma: 1.3
     # ignore_index
     ignore_index: [0,21,22]
 
 cuda_kwargs: # GPU parameters
-  num_workers: 1
+  num_workers: 2
   pin_memory: true

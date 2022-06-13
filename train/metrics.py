@@ -131,7 +131,7 @@ def prc(cMat):
         metric = tp/(tp+fp)
     else:
         metric = 0.0
-        warnings.warn("Precision: Division by zero. Metric is undefined and set to 0")
+        #warnings.warn("Precision: Division by zero. Metric is undefined and set to 0")
     return metric
     
 # Recall
@@ -142,7 +142,7 @@ def rcl(cMat):
         metric = tp/(tp+fn)
     else:
         metric = 0.0
-        warnings.warn("Recall: Division by zero. Metric is undefined and set to 0")
+        #warnings.warn("Recall: Division by zero. Metric is undefined and set to 0")
     return metric
 
 # F1-Score
@@ -153,7 +153,7 @@ def f1s(cMat):
         metric = (2*tp)/(fp+tp+tp+fn)
     else:
         metric = 0.0
-        warnings.warn("F1-Score: Division by zero. Metric is undefined and set to 0")
+        #warnings.warn("F1-Score: Division by zero. Metric is undefined and set to 0")
     return metric
 
 # Intersection over Union
@@ -164,7 +164,7 @@ def iou(cMat):
         metric = tp/(fp+tp+fn)
     else:
         metric = 0.0
-        warnings.warn("IoU: Division by zero. Metric is undefined and set to 0")
+        #warnings.warn("IoU: Division by zero. Metric is undefined and set to 0")
     return metric
     
 # Matthews Correlation Coefficient
@@ -177,7 +177,7 @@ def mcc(cMat):
         metric = numerator/math.sqrt(denominator)
     else:
         metric = 0.0
-        warnings.warn("MCC: Division by zero. Metric is undefined and set to 0")
+        #warnings.warn("MCC: Division by zero. Metric is undefined and set to 0")
     return metric
 
 # cMats     = ndarray of shape (n_classes, 2, 2)
@@ -420,7 +420,9 @@ def plotConfusionMatrices(cMats, TB=False,title="Confusion_Matrices",path="runs/
 
             counter+=1
 
-    plt.tight_layout()  
+    plt.tight_layout()
+    
+    plt.savefig(os.path.join(path,'cMats.png'))
     
     if TB == False:
         plt.show()
@@ -556,7 +558,8 @@ def plot_confusion_matrix(cm,
     plt.tight_layout()
     plt.ylabel('True label', fontsize=15)
     plt.xlabel('Predicted label', fontsize=15)
-   
+    plt.savefig(os.path.join(path,'cMat.png'))
+    
     if tb == False:
         plt.show()
     else:
@@ -601,28 +604,28 @@ def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,p
     fig, axs =plt.subplots(nrow,ncol,gridspec_kw=gridspec_kw , **fig_kw)
 
     # Adds a subplot at the 1st column
-    axs[0].imshow(rgb.permute(1,2,0).numpy())
+    axs[0].imshow(rgb.permute(1,2,0).cpu().numpy())
     axs[0].axis('off')
     axs[0].set_title('RGB')
     axs[0].set_xticklabels([])
     axs[0].set_yticklabels([])
 
     # Adds a subplot at the 2nd column
-    map=axs[1].imshow(labl,cmap=cmap,vmin=(classMin-0.5),vmax=(classMax+0.5))          
+    map=axs[1].imshow(labl.cpu().numpy(),cmap=cmap,vmin=(classMin-0.5),vmax=(classMax+0.5))          
     axs[1].axis('off')
     axs[1].set_title("Label (%d classes)"%(len(torch.unique(labl))))
     axs[1].set_xticklabels([])
     axs[1].set_yticklabels([])
 
     # Adds a subplot at the 3rd column
-    axs[2].imshow(pred,cmap=cmap,vmin=(classMin-0.5),vmax=(classMax+0.5))
+    axs[2].imshow(pred.cpu().numpy(),cmap=cmap,vmin=(classMin-0.5),vmax=(classMax+0.5))
     axs[2].axis('off')
     axs[2].set_title("Prediction (%d classes)"%(len(torch.unique(pred))))
     axs[2].set_xticklabels([])
     axs[2].set_yticklabels([])
 
     # Adds a subplot at the 4th column
-    axs[3].imshow(corrPred,cmap="binary",vmin=0,vmax=1)
+    axs[3].imshow(corrPred.cpu().numpy(),cmap="binary",vmin=0,vmax=1)
     axs[3].axis('off')
     axs[3].set_title("%4.2f %% Predicted Correct"%(predratio)) 
     axs[3].set_xticklabels([])
@@ -654,7 +657,7 @@ def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,p
 # classMin   = lowest class value (0)
 # fig_scale  = for size scaling of figures
 # path        = Path-string, where to save figure, if save_fig = True
-def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,path=None,fn='batch_sample'):
+def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,path=None,fn='batch_sample.png'):
     
     corrPred=torch.eq(pred,labl)
     predratio = torch.sum(corrPred)/corrPred.numel()*100
@@ -681,25 +684,25 @@ def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,pa
 
     for i in range(nrow):
         # Adds a subplot at the 1st column
-        axs[i,0].imshow(rgb[i,0:3,:,:].permute(1,2,0).numpy())
+        axs[i,0].imshow(rgb[i,0:3,:,:].permute(1,2,0).cpu().numpy())
         axs[i,0].axis('off')
         axs[i,0].set_xticklabels([])
         axs[i,0].set_yticklabels([])
 
         # Adds a subplot at the 2nd column
-        map=axs[i,1].imshow(labl[i,:,:],cmap=cmap,vmin=(classMin-0.5),vmax=(classMax+0.5))          
+        map=axs[i,1].imshow(labl[i,:,:].cpu().numpy(),cmap=cmap,vmin=(classMin-0.5),vmax=(classMax+0.5))          
         axs[i,1].axis('off')
         axs[i,1].set_xticklabels([])
         axs[i,1].set_yticklabels([])
 
         # Adds a subplot at the 3rd column
-        axs[i,2].imshow(pred[i,:,:],cmap=cmap,vmin=(classMin-0.5),vmax=(classMax+0.5))
+        axs[i,2].imshow(pred[i,:,:].cpu().numpy(),cmap=cmap,vmin=(classMin-0.5),vmax=(classMax+0.5))
         axs[i,2].axis('off')
         axs[i,2].set_xticklabels([])
         axs[i,2].set_yticklabels([])
 
         # Adds a subplot at the 4th column
-        axs[i,3].imshow(corrPred[i,:,:],cmap="binary",vmin=0,vmax=1)
+        axs[i,3].imshow(corrPred[i,:,:].cpu().numpy(),cmap="binary",vmin=0,vmax=1)
         axs[i,3].axis('off')
         axs[i,3].set_xticklabels([])
         axs[i,3].set_yticklabels([])

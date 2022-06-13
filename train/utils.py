@@ -55,7 +55,8 @@ def train(cfg, model, device, train_loader, optimizer, loss_ce, loss_ftl, epoch,
         # Gather data and report
         running_loss += loss.item()
         # number of training imgs
-   
+        
+        
         #if cfg.config.dry_run:
         #    dryprint(loss,inp)
       
@@ -66,15 +67,18 @@ def train(cfg, model, device, train_loader, optimizer, loss_ce, loss_ftl, epoch,
                 epoch,cfg.train.epochs, batch_idx*len(inp), ninstances,
                 100.*batch_idx*len(inp) / ninstances, last_loss)
             )
+            if np.isnan(last_loss):
+                return(running_loss)
+   
             # prediction for IOU 
-            pred = torch.nn.functional.softmax(output,dim=1)
-            pred = torch.argmax(pred,dim=1)
-            cMats += computeConfMats(target.cpu(),pred.cpu())
-            iou = valMetric(cMats,train_classCounts)    
+            #pred = torch.nn.functional.softmax(output,dim=1)
+            #pred = torch.argmax(pred,dim=1)
+            #cMats += computeConfMats(target.cpu(),pred.cpu())
+            #iou = valMetric(cMats,train_classCounts)    
              #Report to tensor board
             tb_x = (epoch-1) * len(train_loader) + batch_idx    # x value
             tb_writer.add_scalar('Loss/train', last_loss, tb_x) 
-            tb_writer.add_scalar('IOU/train', iou, tb_x) 
+            #tb_writer.add_scalar('IOU/train', iou, tb_x) 
             
 
             if cfg.config.dry_run:
@@ -123,23 +127,29 @@ def eval(cfg,best_model,device,test_loader,test_classCounts):
 
     best_model.eval()
     cMats=torch.zeros((cfg.config.nClasses-1,2,2),dtype=torch.int32)
-    predarr = torch.tensor([],dtype=torch.int32,device=device)   
-    labelarr = torch.tensor([],dtype=torch.int32,device=device)
+    predarr = torch.tensor([],dtype=torch.long,device=device)   
+    labelarr = torch.tensor([],dtype=torch.long,device=device)
     
     with torch.no_grad():
         for images, labels in test_loader:
+            images, labels = images.to(device),labels.to(device)
             outputs = best_model(images)
             preds = torch.nn.functional.softmax(outputs,dim=1)
             preds = torch.argmax(preds,dim=1)
-            cMats += computeConfMats(labels,preds)
-          
+              
             # Flatten dimensions BxHxW --> B*H*W and concatenate
             predarr = torch.cat((predarr, preds.reshape(-1)))
             labelarr = torch.cat(( labelarr, labels.reshape(-1)))
+            
+            cMats += computeConfMats(labels.cpu(),preds.cpu())
+          
+    plot_batch(preds,labels,images,path=cfg.config.savedir)
+    plot_best_worst(preds,labels,images,path=cfg.config.savedir)
+    labels,preds,images = labels.cpu(),preds.cpu(),images.cpu()
+    #plot_batch(preds,labels,images,path=cfg.config.savedir)
+    #plot_best_worst(preds,labels,images,path=cfg.config.savedir)
+    report_metrics(cMats,labelarr.cpu(),predarr.cpu(),test_classCounts,TB=cfg.config.tensorboard,path=cfg.config.savedir)
     
-    report_metrics(cMats,labelarr,predarr,test_classCounts,TB=cfg.config.tensorboard,path=cfg.config.savedir)
-    plot_batch(preds,labels,images)
-    plot_best_worst(preds,labels,images)
  
 ########### helper functions ############# 
 
@@ -147,7 +157,7 @@ def eval(cfg,best_model,device,test_loader,test_classCounts):
 # input batch of preds labels and images
 # finds best and worst prediction and plots them
 # uses function plot_sample from train.metrics.py 
-def plot_best_worst(preds,labels,images):
+def plot_best_worst(preds,labels,images,path):
 
     #plot sample of best and worst in batch
     sum_eq = torch.sum(torch.eq(preds,labels),dim=[1,2])
@@ -162,9 +172,9 @@ def plot_best_worst(preds,labels,images):
     blabl=labels[best].squeeze()
     bpred=preds[best].squeeze()
     bimg=images[best].squeeze()
-
-    plot_sample(wpred,wlabl, wimg[0:3,:,:],fn='batch_worst.png') 
-    plot_sample(bpred,blabl, bimg[0:3,:,:],fn='batch_best.png')
+    
+    plot_sample(wpred,wlabl, wimg[0:3,:,:],fn='batch_worst.png',path=path) 
+    plot_sample(bpred,blabl, bimg[0:3,:,:],fn='batch_best.png',path=path)
 
 
 def report_metrics(cMats,labelarr,predarr,test_classCounts,TB=True,path='runs/'):

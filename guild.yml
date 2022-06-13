@@ -1,8 +1,0 @@
-- model: deepsat
-  operations:
-    train:
-      requires:
-        - file: config.yaml
-      description: Train unet
-      main: main
-      flags-import: all

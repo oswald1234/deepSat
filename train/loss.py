@@ -39,13 +39,14 @@ from zmq import device
 # TVERSKY FOCAL LOSS MULTICLASS
 
 class focalTverskyLoss(nn.Module):
-    def __init__(self,smooth=1,alpha=0.7,beta=0.3,gamma=0.75,ignore_index=[0,21,22]):
+    def __init__(self,smooth=1,alpha=0.7,beta=0.3,gamma=0.75,ignore_index=[0,21,22],device='cuda'):
         super(focalTverskyLoss, self).__init__()
         self.ignore_index=ignore_index
         self.GAMMA = gamma
         self.BETA=beta
         self.ALPHA=alpha
         self.smooth=smooth
+        self.device=device
 
     def forward(self, inputs, targets):
         inputs=inputs.flatten(start_dim=-2)
@@ -54,7 +55,7 @@ class focalTverskyLoss(nn.Module):
         targets = F.one_hot(targets,num_classes=NUM_CLASSES)
 
         if self.ignore_index: 
-            indices=torch.tensor(np.delete(np.arange(0,NUM_CLASSES),self.ignore_index ))
+            indices=torch.tensor(np.delete(np.arange(0,NUM_CLASSES),self.ignore_index ), device=self.device)
             inputs = inputs.index_select(dim=1,index=indices)
             targets = targets.index_select(dim=2,index=indices)
  

@@ -45,8 +45,8 @@ class sentinel(Dataset):
     @staticmethod 
     def open_h5(self,idx):
         with h5py.File(self.patch_files[idx], 'r') as h5:
-            #labl = torch.from_numpy(h5['train_id'][:,:].astype('float32'))
-            labl = torch.from_numpy(self.map_id(h5['class_code'][:,:]))
+            labl = torch.from_numpy(h5['train_id'][:,:].astype('float32'))
+            #labl = torch.from_numpy(self.map_id(h5['class_code'][:,:]))
         
             
             if self.rgb:

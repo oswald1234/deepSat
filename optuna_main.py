@@ -25,7 +25,7 @@ from model.models import UNET
 import numpy as np
 import time
 
-from train.utils import train, test, get_conf, get_config, print_cfg,save_cfg,get_savedir, eval
+from train.utils import test,get_conf, get_config, print_cfg,save_cfg,get_savedir, eval
 
 import munch
 import optuna
@@ -69,7 +69,7 @@ test_classCounts=torch.tensor([
     dtype=torch.int32)
 
 def get_transforms(cfg):
-
+    
     # quantiles
     if cfg.dataset.kwargs.timeperiod ==1:
         q_hi = q_hi_1
@@ -77,8 +77,9 @@ def get_transforms(cfg):
     else:
         q_hi = q_hi_2
         q_lo = q_lo_2
-    
-    # initialize normalizer 
+        
+
+ # initialize normalizer 
     pNorm = pNormalize(
         maxPer = q_hi,
         minPer = q_lo
@@ -149,7 +150,83 @@ def get_dataLoaders(cfg):
     print('Validation set has {} instances\n'.format(len(validation_set)))    
 
     return(training_loader,validation_loader,test_loader)
+
+# train one epoch
+def train(cfg, model, device, train_loader, optimizer, loss_ce, loss_ftl, epoch, tb_writer, train_classCounts):
+
+    running_loss = 0.
+    last_loss = 0.
+    batch_idx = 0
+    cMats=torch.zeros((cfg.config.nClasses-1,2,2),dtype=torch.int32)
+    iou = 0
+
+    model.train(True)
+    ninstances = len(train_loader.dataset)
+    log_intervall = cfg.config.log_intervall if cfg.config.log_intervall != 0 else 99999
+    w = cfg.loss.weight
+
+    for inp, target in train_loader:
+        batch_idx += 1
+        # Every data instance is an input (X) + target (y) pair
+        inp, target = inp.to(device), target.to(device)
+
+        # zero gradients for every batch
+        optimizer.zero_grad()
+
+        # make predictions for batch
+        output = model(inp)
+
         
+        # compute loss and gradients
+
+        if w!='None':
+            loss = w*loss_ce(output, target) + (1-w)*loss_ftl(output, target)
+        else:
+            loss= loss_ce(output, target) + loss_ftl(output, target)
+
+        loss.backward()
+
+        # Adjust learning weights
+        optimizer.step()
+
+        # Gather data and report
+        running_loss += loss.item()
+        # number of training imgs
+        
+        
+        #if cfg.config.dry_run:
+        #    dryprint(loss,inp)
+      
+        # report (epoch loss) every log_intervall 
+        if batch_idx % log_intervall == 0:
+            last_loss = running_loss/batch_idx
+            epoch_perc = 100.*batch_idx*len(inp) / ninstances 
+            print('Train Epoch: {}/{} [{}/{} ({:.0f}%)]\tLoss: {:.2f}'.format(
+                epoch,cfg.train.epochs, batch_idx*len(inp), ninstances,
+                epoch_perc, last_loss)
+            )
+            if np.isnan(last_loss):
+                break
+            if epoch_perc > 50:
+                break
+   
+            # prediction for IOU 
+            #pred = torch.nn.functional.softmax(output,dim=1)
+            #pred = torch.argmax(pred,dim=1)
+            #cMats += computeConfMats(target.cpu(),pred.cpu())
+            #iou = valMetric(cMats,train_classCounts)    
+             #Report to tensor board
+            tb_x = (epoch-1) * len(train_loader) + batch_idx    # x value
+            tb_writer.add_scalar('Loss/train', last_loss, tb_x) 
+            #tb_writer.add_scalar('IOU/train', iou, tb_x) 
+            
+
+            if cfg.config.dry_run:
+                break
+
+    return running_loss/batch_idx #epoch mean
+
+
 def objective(trial):
     # get config file
     cfg = get_config()
@@ -259,7 +336,16 @@ def objective(trial):
         if not load_model:
             # Train one epoch
             tic = time.perf_counter() 
-        avg_loss = train(cfg, model, device, training_loader, optimizer, loss_ce, loss_ftl, epoch, train_writer,train_classCounts)
+        avg_loss = train(cfg, 
+                         model, 
+                         device, 
+                         training_loader, 
+                         optimizer, 
+                         loss_ce, 
+                         loss_ftl, 
+                         epoch, 
+                         train_writer,
+                         train_classCounts)
             
         if np.isnan(avg_loss):
             break
@@ -330,7 +416,23 @@ def objective(trial):
     
 
 if __name__ == '__main__':
-    study  = optuna.create_study(direction='maximize',study_name="testrun",pruner=optuna.pruners.HyperbandPruner(),load_if_exists=True)
+    
+    
+    # reduction_factor = n
+    # min_resource = r
+    # max_resource/min_resource =  R
+    # min_early_stopping_rate = s
+    pruner=optuna.pruners.HyperbandPruner(reduction_factor=4,
+                                          min_resource=1,
+                                          max_resource=50
+                                         )
+
+
+    study = optuna.create_study(direction='maximize',
+                                study_name="testrun",
+                                pruner=pruner
+                               )
+                                
     study.enqueue_trial(
         {
             "lr": 1e-4,
@@ -338,6 +440,7 @@ if __name__ == '__main__':
             "gamma": 1.33
         }
         )
+    
     study.optimize(objective,n_trials=40  )
     
     pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])

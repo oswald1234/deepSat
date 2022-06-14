@@ -29,11 +29,14 @@ from train.utils import train, test, get_conf, get_config, print_cfg,save_cfg,ge
 import munch
 
 
-# maxs=torch.tensor([3272., 2232., 1638., 5288., 3847.76098633, 4062.0222168, 5027.98193359, 5334.12207031,4946.20849609, 3493.02246094])
-# mins=torch.tensor([ 0., 0., 0., 0., 0., -0.91460347,  0.,  0.,  0., -0.07313281])
 
-q_hi = torch.tensor([2102.0, 1716.0, 1398.0, 4732.0, 2434.42919921875, 3701.759765625, 4519.2177734375, 4857.7734375, 3799.80322265625, 3008.8935546875])
-q_lo = torch.tensor([102.0, 159.0, 107.0, 77.0, 106.98081970214844, 79.00384521484375, 86.18966674804688, 70.40167236328125, 50.571197509765625, 36.95356750488281])
+# timeperiod 1 98% quantiles
+q_hi_1 = torch.tensor([2102.0, 1716.0, 1398.0, 4732.0, 2434.42919921875, 3701.759765625, 4519.2177734375, 4857.7734375, 3799.80322265625, 3008.8935546875])
+q_lo_1 = torch.tensor([102.0, 159.0, 107.0, 77.0, 106.98081970214844, 79.00384521484375, 86.18966674804688, 70.40167236328125, 50.571197509765625, 36.95356750488281])
+
+#timeperiod 2 98% quantiles
+q_hi_2 = [1600.0, 1470.0, 1528.0, 4816.0, 2091.430419921875, 3938.1103515625, 4561.27294921875, 4804.4521484375, 2890.80810546875, 2196.6494140625]
+q_lo_2 = [22.0, 41.0, 1.0, 1.0, 27.108013153076172, 4.010444641113281, 4.878728866577148, 3.9264116287231445, 11.01298999786377, 13.7161865234375]
 
 #old weights
 #ce_weights =torch.tensor([
@@ -42,13 +45,6 @@ q_lo = torch.tensor([102.0, 159.0, 107.0, 77.0, 106.98081970214844, 79.003845214
 #    1.6943e+02, 9.5672e+01, 4.4588e+02, 3.8277e+02, 3.2361e+01, 3.2498e+01,
 #    2.8015e+00, 2.0817e+04, 3.2352e+00, 0.0000e+00, 0.0000e+00, 1.0000e+00,
 #    4.9671e+01, 5.8634e+03, 4.5644e+01, 6.7183e+00])
-
-# new weigts
-#ce_weights = torch.tensor([0.0000e+00, 4.7678e+01, 1.0650e+01, 4.1502e+00, 1.5866e+00, 1.5545e+00,
-#        4.1207e+00, 1.5361e+00, 1.0232e+01, 1.0073e+02, 1.0726e+01, 9.3221e+01,
-#        1.5727e+01, 8.8809e+00, 4.1390e+01, 3.5532e+01, 3.0040e+00, 3.0167e+00,
-#        2.6006e-01, 1.9323e+03, 3.0032e-01, 0.0000e+00, 0.0000e+00, 9.2827e-02,
-#        4.6108e+00, 5.4428e+02, 4.2370e+00, 6.2364e-01])
 
 #old with added weight on "other roads and..."
 ce_weights = torch.tensor([0.0000e+00, 5.1362e+02, 1.1472e+02, 4.4708e+01, 1.7092e+01, 1.6746e+01,
@@ -78,7 +74,89 @@ test_classCounts=torch.tensor([
     128908,    1642,  235669, 1433481], 
     dtype=torch.int32)
 
+def get_transforms(cfg):
+    
+        # quantiles
+    if cfg.dataset.kwargs.timeperiod ==1:
+        q_hi = q_hi_1
+        q_lo = q_lo_1
+    else:
+        q_hi = q_hi_2
+        q_lo = q_lo_2
+        
 
+ # initialize normalizer 
+    pNorm = pNormalize(
+        maxPer = q_hi,
+        minPer = q_lo
+    )
+
+        # img_transforms define transforms to apply on img only
+    # RandomApply Define random augmentations to apply on img with prob p:
+    # TODO: see kernel_size and sigma used in kth-exjobb
+    img_transforms = transforms.Compose([
+        transforms.RandomApply(torch.nn.ModuleList([
+            transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 1)),
+            transforms.ColorJitter()
+            ]),p=0.2),
+        pNorm
+    ])
+    
+    #imlab_transforms define random flips/rotations to apply on both img and labl with prob p
+    img_label_transform = transforms.Compose([
+        transforms.RandomApply(torch.nn.ModuleList([
+            transforms.RandomVerticalFlip(),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(degrees=90)
+            ]),p=0.4)
+    ])
+
+    return(img_transforms,img_label_transform,pNorm)
+
+
+def get_dataLoaders(cfg):
+
+    # Get image transforms
+    img_transforms,img_label_transforms,pNorm = get_transforms(cfg)
+
+    # parameters for dataset 
+    train_kwargs = cfg.dataset.train_kwargs
+    val_kwargs = cfg.dataset.val_kwargs
+    test_kwargs = cfg.dataset.test_kwargs
+
+    # parameters for dataloaders
+    loader_train_kwargs=cfg.data_loader.train_kwargs
+    loader_test_kwargs =cfg.data_loader.test_kwargs
+    
+   
+    # Define datasets for training & validation
+    training_set = sentinel( **train_kwargs,
+                            img_transform=img_transforms,
+                            transforms=img_label_transforms
+                           )
+    
+    validation_set = sentinel(**val_kwargs,
+                              img_transform=pNorm 
+                             )
+    
+    # Create data loaders for our datasets; shuffle for training, not for validation
+    training_loader = DataLoader(training_set, **loader_train_kwargs)
+    validation_loader = DataLoader(validation_set, **loader_test_kwargs)
+
+    if cfg.dataset.test_kwargs.data == 'val':
+        test_loader = validation_loader
+        print('Validation set is used for final testing')
+    elif cfg.dataset.test_kwargs.data == 'test':
+        test_set= sentinel(**test_kwargs)
+        test_loader=DataLoader(test_set, **loader_test_kwargs)
+        print('Test set is used for final testing. \nTest set has {} instances'.format(len(test_set)))
+    
+    # Report split sizes 
+    print('Training set has {} instances'.format(len(training_set)))
+    print('Validation set has {} instances\n'.format(len(validation_set)))    
+
+    return(training_loader,validation_loader,test_loader)
+        
         
 def main():
     # get config file
@@ -91,17 +169,7 @@ def main():
     cfg.dataset.train_kwargs.update(cfg.dataset.kwargs)
     cfg.dataset.test_kwargs.update(cfg.dataset.kwargs)
     cfg.dataset.val_kwargs.update(cfg.dataset.kwargs)
-    
-    # parameters for dataset 
-    train_kwargs = cfg.dataset.train_kwargs
-    val_kwargs = cfg.dataset.val_kwargs
-    test_kwargs = cfg.dataset.test_kwargs
-    
-    # parameters for dataloaders 
-    loader_train_kwargs=cfg.data_loader.train_kwargs
-    loader_test_kwargs =cfg.data_loader.test_kwargs
-    
-    
+  
     #for testing purpouse 
     dry_run = cfg.config.dry_run 
     
@@ -134,10 +202,11 @@ def main():
     if manual_seed:
         torch.manual_seed(seed)
       
-    # if use_cuda => use cuda_kwargs 
+    # if use_cuda => use cuda_kwargs  
     if use_cuda:
-        loader_train_kwargs.update(cfg.cuda_kwargs)
-        loader_test_kwargs.update(cfg.cuda_kwargs)
+        cfg.data_loader.train_kwargs.update(cfg.cuda_kwargs)
+        cfg.data_loader.test_kwargs.update(cfg.cuda_kwargs)
+    
     
     print(' \n PyTorch 3D-Unet running on device:', device)
     print_cfg(cfg)
@@ -146,61 +215,8 @@ def main():
     train_writer = SummaryWriter(os.path.join(savedir,'train_LOSS'))
     val_writer = SummaryWriter(os.path.join(savedir,'val_LOSS'))
     
-    
-    
-    # initialize normalizer 
-    pNorm = pNormalize(
-        maxPer = q_hi,
-        minPer = q_lo
-    )
-    
-    # img_transforms define transforms to apply on img only
-    # RandomApply Define random augmentations to apply on img with prob p:
-    # TODO: see kernel_size and sigma used in kth-exjobb
-    img_transforms = transforms.Compose([
-        transforms.RandomApply(torch.nn.ModuleList([
-            transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 1)),
-            transforms.ColorJitter()
-            ]),p=0.2),
-        pNorm
-    ])
-    
-    #imlab_transforms define random flips/rotations to apply on both img and labl with prob p
-    imlab_transforms = transforms.Compose([
-        transforms.RandomApply(torch.nn.ModuleList([
-            transforms.RandomVerticalFlip(),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(degrees=90)
-            ]),p=0.4)
-    ]) 
-    
-   
-    # Define datasets for training & validation
-    training_set = sentinel( **train_kwargs,
-                            img_transform=img_transforms,
-                            transforms=imlab_transforms
-                           )
-    
-    validation_set = sentinel(**val_kwargs,
-                              img_transform=pNorm 
-                             )
-    
-    # Create data loaders for our datasets; shuffle for training, not for validation
-    training_loader = DataLoader(training_set, **loader_train_kwargs)
-    validation_loader = DataLoader(validation_set, **loader_test_kwargs)
-
-    if cfg.dataset.test_kwargs.data == 'val':
-        test_loader = validation_loader
-        print('Validation set is used for final testing')
-    elif cfg.dataset.test_kwargs.data == 'test':
-        test_set= sentinel(**test_kwargs)
-        test_loader=DataLoader(test_set, **loader_test_kwargs)
-        print('Test set is used for final testing. \nTest set has {} instances'.format(len(test_set)))
-    
-    
-    # Report split sizes 
-    print('Training set has {} instances'.format(len(training_set)))
-    print('Validation set has {} instances\n'.format(len(validation_set)))    
+    #get data Loaders 
+    training_loader,validation_loader,test_loader = get_dataLoaders(cfg)
     
     # batch sample
     img, labl = iter(training_loader).next()
@@ -227,9 +243,11 @@ def main():
     loss_ce = nn.CrossEntropyLoss(weight=ce_weights_train,ignore_index=0).to(device)    
     loss_ftl = focalTverskyLoss(**cfg.loss.focalTversky_kwargs,device=device).to(device)
 
-    # initiate best_vloss
+    # initiate best_vloss/iou
     best_vloss = 1_000_000.
     best_iou = 0
+
+    # for time tracking
     time_est = 0
     tic_start = datetime.now()    
     

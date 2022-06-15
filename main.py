@@ -17,6 +17,8 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 from dataset.datasets import sentinel
+from dataset.stats import quantiles,ce_weights, classCounts
+
 from preprocess.classDict import   class_dict
 from dataset.utils import pNormalize, crossEntropyLossWeights, classCount
 from train.loss import focalTverskyLoss
@@ -30,70 +32,18 @@ import munch
 
 
 
-# timeperiod 1 98% quantiles
-q_hi_1 = torch.tensor([2102.0, 1716.0, 1398.0, 4732.0, 2434.42919921875, 3701.759765625, 4519.2177734375, 4857.7734375, 3799.80322265625, 3008.8935546875])
-q_lo_1 = torch.tensor([102.0, 159.0, 107.0, 77.0, 106.98081970214844, 79.00384521484375, 86.18966674804688, 70.40167236328125, 50.571197509765625, 36.95356750488281])
-
-#timeperiod 2 98% quantiles
-q_hi_2 = [1600.0, 1470.0, 1528.0, 4816.0, 2091.430419921875, 3938.1103515625, 4561.27294921875, 4804.4521484375, 2890.80810546875, 2196.6494140625]
-q_lo_2 = [22.0, 41.0, 1.0, 1.0, 27.108013153076172, 4.010444641113281, 4.878728866577148, 3.9264116287231445, 11.01298999786377, 13.7161865234375]
-
-#old weights
-#ce_weights =torch.tensor([
-#    0.0000e+00, 5.1362e+02, 1.1472e+02, 4.4708e+01, 1.7092e+01, 1.6746e+01,
-#    4.4391e+01, 1.6548e+01, 1.1023e+02, 7.8302e+00, 1.1555e+02, 1.0042e+03,
-#    1.6943e+02, 9.5672e+01, 4.4588e+02, 3.8277e+02, 3.2361e+01, 3.2498e+01,
-#    2.8015e+00, 2.0817e+04, 3.2352e+00, 0.0000e+00, 0.0000e+00, 1.0000e+00,
-#    4.9671e+01, 5.8634e+03, 4.5644e+01, 6.7183e+00])
-
-#old with added weight on "other roads and..."
-ce_weights = torch.tensor([0.0000e+00, 5.1362e+02, 1.1472e+02, 4.4708e+01, 1.7092e+01, 1.6746e+01,
-        4.4391e+01, 1.6548e+01, 1.1023e+02, 1.0783e+02, 1.1555e+02, 1.0042e+03,
-        1.6943e+02, 9.5672e+01, 4.4588e+02, 3.8277e+02, 3.2361e+01, 3.2498e+01,
-        2.8015e+00, 2.0817e+04, 3.2352e+00, 0.0000e+00, 0.0000e+00, 1.0000e+00,
-        4.9671e+01, 5.8634e+03, 4.5644e+01, 6.7183e+00])
-
-val_classCounts = torch.tensor([  
-    70285,    8015,   68954,  181556,  534386,  591861,  211741,  473394,
-    91870, 1137165,   66135,     662,  124072,   70080,   15372,   30516,
-    262138,  220720, 3414479,     162, 2646013,       0,       0, 9503818,
-    163217,    1668,  173970, 1499095], 
-    dtype=torch.int32)
-
-train_classCounts= torch.tensor([  
-    535419,   138327,   619285,  1589119,  4156781,  4242609, 1600499, 4293367,
-    644562,  9073507,   614877,    70747,   419341,  742613,  159342,   185612,
-    2195461,  2186212, 25360177,     3413, 21960385, 0,       0,      71047030,
-    1430349,    12117,  1556533, 10575180],
-    dtype=torch.int32)
-
-test_classCounts=torch.tensor([
-    64911,   10252,   69500,  248063,  565968,  585386,  198120,  558537,
-    71158, 1161760,   81514,    4988,   57822,   77373,   25242,   19492,
-    329747,  244345, 3099608,       0, 2497249,       0,       0, 8873105,
-    128908,    1642,  235669, 1433481], 
-    dtype=torch.int32)
-
 def get_transforms(cfg):
     
-        # quantiles
-    if cfg.dataset.kwargs.timeperiod ==1:
-        q_hi = q_hi_1
-        q_lo = q_lo_1
-    else:
-        q_hi = q_hi_2
-        q_lo = q_lo_2
-        
-
+    
  # initialize normalizer 
     pNorm = pNormalize(
-        maxPer = q_hi,
-        minPer = q_lo
+        maxPer =quantiles['high'][str(cfg.dataset.kwargs.timeperiod)],
+        minPer =quantiles['low'][str(cfg.dataset.kwargs.timeperiod)]
     )
 
-        # img_transforms define transforms to apply on img only
+    # img_transforms define transforms to apply on img only
     # RandomApply Define random augmentations to apply on img with prob p:
-    # TODO: see kernel_size and sigma used in kth-exjobb
+   
     img_transforms = transforms.Compose([
         transforms.RandomApply(torch.nn.ModuleList([
             transforms.GaussianBlur(kernel_size=(5, 9), sigma=(0.1, 1)),
@@ -161,6 +111,11 @@ def get_dataLoaders(cfg):
 def main():
     # get config file
     cfg = get_config()
+
+    # set which class counts to use depending on which set is used for final testing
+    test_classCounts=classCounts[cfg.dataset.test_kwargs.data]
+    train_classCounts= classCounts['train']
+    val_classCounts= classCounts['val']
 
     nClasses = len(list(set(val['train_id'] for val in class_dict.values()))) + 1
     cfg.config.nClasses = nClasses

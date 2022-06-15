@@ -249,8 +249,15 @@ def print_cfg(cfg):
     print('\v\v')
 
 def save_cfg(cfg,savedir):
-    with open(os.path.join(savedir,'config.yaml'),'w') as file:
-        yaml.dump(config,file)
+    
+    cfg = munch.unmunchify(cfg)
+    path= os.path.join(savedir,'config.yaml')
+    
+    if not os.path.exists(savedir):
+        os.makedirs(savedir)
+            
+    with open(path,'w') as file:
+        yaml.safe_dump(munch.unmunchify(cfg),file)
 
 def get_savedir(cfg):
     

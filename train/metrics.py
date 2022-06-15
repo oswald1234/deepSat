@@ -271,6 +271,12 @@ def printClassMetrics(metrics,classCounts,TB=False,title="Class_Metrics",path="r
     classCounts = classCounts[1:len(classCounts)] #REMOVE LABEL 0 = UNCLASSIFIED
     classCounts = classCounts/classCounts.sum() * 100
     
+    lines = ['\n \n',title, "@@ Class Metrics @@\n","{:<8} {:<15} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10} {:<10}".format(
+            'Label', 'UA2018 ID', '% Data','Accuracy','Precision','Recall',
+            'F1-Score','IoU','MCC','Description'),"------------------------------------------------------------------------------"+
+            "------------------------------------------------------------------------------"+
+            "----------------------------"]
+
     if TB == False:    
         strlist2 = strlist[1:len(strlist)]   #REMOVE LABEL 0 = UNCLASSIFIED
         
@@ -289,11 +295,18 @@ def printClassMetrics(metrics,classCounts,TB=False,title="Class_Metrics",path="r
         print("------------------------------------------------------------------------------"+
             "------------------------------------------------------------------------------"+
             "----------------------------")
-
+        
         for l, v in d.items():
             p, acc, prc, rcl, f1s, iou, mcc, dsc, ua = v
             print ("{:<8} {:<15} {:<10.2f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10}".format(
                 l+1, ua, p, acc, prc, rcl, f1s, iou, mcc, dsc))
+            lines.append("{:<8} {:<15} {:<10.2f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10}".format(
+                l+1, ua, p, acc, prc, rcl, f1s, iou, mcc, dsc))
+
+        with open(os.path.join(path,'metrics.txt'), 'a') as f:
+            f.write('\n'.join(lines))
+
+        
     else:
         strlist3 = strlist
         strlist3[7] = "Industrial,commercial,public,military & private units"
@@ -350,6 +363,13 @@ def printModelMetrics(metrics,TB=False,title="Model_Metrics",path="runs/"):
     strlistM[3] = "F1-Score"
     strlistM[4] = "Intersection over Union"
     strlistM[5] = "Matthews Correlation Coefficient"
+
+
+    lines = ['\n \n',title, "@@ Weighted Macro-Average Model Metrics @@\n"]
+    for i in range(len(metrics)):
+        lines.append(f'{strlistM[i]:<35}: {metrics[i].item():.4f}')
+    with open(os.path.join(path,'metrics.txt'), 'a') as f:
+        f.write('\n'.join(lines))
 
     if TB == False:    
         print("@@ Weighted Macro-Average Model Metrics @@\n")

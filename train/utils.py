@@ -183,12 +183,12 @@ def report_metrics(cMats,labelarr,predarr,test_classCounts,TB=True,path='runs/')
     model_metrics = wma(class_metrics,test_classCounts)
 
     # Print model metrics
-    printModelMetrics(model_metrics)
+    printModelMetrics(model_metrics,path=path)
     # Print model metrics to TENSORBOARD. Default path = 'runs/Model_Metrics'
     printModelMetrics(model_metrics,TB=TB,path=path)
    
     # Print class Metrics
-    printClassMetrics(class_metrics,test_classCounts)
+    printClassMetrics(class_metrics,test_classCounts,path=path)
     printClassMetrics(class_metrics,test_classCounts,TB=TB,path=path)
     
     # Plot confusion matrices to TENSORBOARD. Default path = 'runs/Confusion_Matrices'

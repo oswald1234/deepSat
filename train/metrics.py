@@ -599,7 +599,7 @@ def plot_confusion_matrix(cm,
 # fig_scale  = for size scaling of figures
 # path        = Path-string, where to save figure, if save_fig = True
 
-def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,path=None,fn='sample.png'):
+def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,path=None,fn='sample.png',dpi=150):
     
     corrPred=torch.eq(pred,labl)
     predratio = torch.sum(corrPred)/corrPred.numel()*100
@@ -655,6 +655,7 @@ def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,p
 
     if save_fig:
         if path:
+            
             if not os.path.exists(path):
                 os.makedirs(path)
 
@@ -662,7 +663,7 @@ def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,p
         else:
             path= fn
 
-        plt.savefig(path)
+        plt.savefig(path,dpi=dpi)
     else:
         plt.show()
 
@@ -677,15 +678,18 @@ def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,p
 # classMin   = lowest class value (0)
 # fig_scale  = for size scaling of figures
 # path        = Path-string, where to save figure, if save_fig = True
-def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,path=None,fn='batch_sample.png'):
+def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,path=None,fn='batch_sample.png',dpi=150):
     
+    # correct predicted % per patch
+    predRatio = torch.sum(torch.eq(pred,labl),dim=[1,2])/pred[0,:,:].numel()*100
     corrPred=torch.eq(pred,labl)
-    predratio = torch.sum(corrPred)/corrPred.numel()*100
+    
     cmap = plt.get_cmap('Spectral', classMax - classMin + 1)
 
     nrow = pred.shape[0]
     ncol = 4
     
+    ymax=pred.shape[-2]
 
     gridspec_kw ={ 
                 "wspace": 0.0,
@@ -722,8 +726,10 @@ def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,pa
         axs[i,2].set_yticklabels([])
 
         # Adds a subplot at the 4th column
+        perc = str(round(predRatio[i].item(),2)) + '%'
         axs[i,3].imshow(corrPred[i,:,:].cpu().numpy(),cmap="binary",vmin=0,vmax=1)
         axs[i,3].axis('off')
+        axs[i,3].text(0.01,ymax*0.99,perc,color='lime')
         axs[i,3].set_xticklabels([])
         axs[i,3].set_yticklabels([])
 
@@ -734,13 +740,13 @@ def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,pa
 
     if save_fig:
         if path:
+            
             if not os.path.exists(path):
                 os.makedirs(path)
-
             path= os.path.join(path,fn)
         else:
             path= fn
 
-        plt.savefig(path)
+        plt.savefig(path,dpi=dpi)
     else:   
         plt.show()

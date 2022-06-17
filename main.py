@@ -97,7 +97,9 @@ def get_dataLoaders(cfg):
         test_loader = validation_loader
         print('Validation set is used for final testing')
     elif cfg.dataset.test_kwargs.data == 'test':
-        test_set= sentinel(**test_kwargs)
+        test_set= sentinel(**test_kwargs,
+                           img_transform=pNorm
+                          )
         test_loader=DataLoader(test_set, **loader_test_kwargs)
         print('Test set is used for final testing. \nTest set has {} instances'.format(len(test_set)))
     

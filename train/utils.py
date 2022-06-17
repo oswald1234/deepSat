@@ -131,7 +131,7 @@ def eval(cfg,best_model,device,test_loader,test_classCounts):
     labelarr = torch.tensor([],dtype=torch.long,device=device)
     
     with torch.no_grad():
-        for images, labels in test_loader:
+        for ii,(images, labels) in enumerate(test_loader):
             images, labels = images.to(device),labels.to(device)
             outputs = best_model(images)
             preds = torch.nn.functional.softmax(outputs,dim=1)
@@ -142,39 +142,55 @@ def eval(cfg,best_model,device,test_loader,test_classCounts):
             labelarr = torch.cat(( labelarr, labels.reshape(-1)))
             
             cMats += computeConfMats(labels.cpu(),preds.cpu())
-          
-    plot_batch(preds,labels,images,path=cfg.config.savedir)
-    plot_best_worst(preds,labels,images,path=cfg.config.savedir)
+            
+            plots(preds,labels,images,savedir=cfg.config.savedir, idx=ii)
+            
+            
     labels,preds,images = labels.cpu(),preds.cpu(),images.cpu()
-    #plot_batch(preds,labels,images,path=cfg.config.savedir)
-    #plot_best_worst(preds,labels,images,path=cfg.config.savedir)
+
     report_metrics(cMats,labelarr.cpu(),predarr.cpu(),test_classCounts,TB=cfg.config.tensorboard,path=cfg.config.savedir)
     
  
-########### helper functions ############# 
+####### help functions ########
 
-# to plot best and worst prediction in batch
-# input batch of preds labels and images
-# finds best and worst prediction and plots them
-# uses function plot_sample from train.metrics.py 
-def plot_best_worst(preds,labels,images,path):
+def plots(preds,labels,images, savedir, idx=None):
 
-    #plot sample of best and worst in batch
-    sum_eq = torch.sum(torch.eq(preds,labels),dim=[1,2])
+    #plot batch  
+    plot_batch(preds,labels,images,
+                path=os.path.join(savedir,'pred_figures/batch'),
+                fn='batch_{}'.format(idx),
+              dpi=300)
+            
+    # get best and worst pred of batch 
+    min_index,max_index = get_min_max_pred(preds,labels)
+            
+    # plot best and worst sample 
+    plot_sample(preds[min_index,:,:],labels[min_index,:,:], images[min_index,0:3,:,:],
+                path=os.path.join(savedir,'pred_figures/BW_batch'),
+                fn='batch_{}_worst.png'.format(idx),
+               dpi=256) 
+    plot_sample(preds[max_index,:,:],labels[max_index,:,:], images[max_index,0:3,:,:],
+                        path=os.path.join(savedir,'pred_figures/BW_batch'),
+                        fn='batch_{}_best.png'.format(idx),
+                        dpi=256)
+            
 
-    best= torch.where(torch.max(sum_eq)==sum_eq)
-    worst = torch.where(torch.min(sum_eq)==sum_eq)
-
-    wlabl=labels[worst].squeeze()
-    wpred=preds[worst].squeeze()
-    wimg=images[worst].squeeze()
-
-    blabl=labels[best].squeeze()
-    bpred=preds[best].squeeze()
-    bimg=images[best].squeeze()
+## get_min_max_pred()
+## input: batch of preds, labels,
+## Returns index for best prediction of batch if best = True, else Worst prediction of batch
+def get_min_max_pred(preds,labels):
     
-    plot_sample(wpred,wlabl, wimg[0:3,:,:],fn='batch_worst.png',path=path) 
-    plot_sample(bpred,blabl, bimg[0:3,:,:],fn='batch_best.png',path=path)
+    # sum where pred equals label for each pred in batch
+    sum_eq = torch.sum(torch.eq(preds,labels),dim=[1,2])
+    # return max and min index
+    max_index= torch.where(torch.max(sum_eq)==sum_eq)[0].item()
+    min_index= torch.where(torch.min(sum_eq)==sum_eq)[0].item()
+    
+    return(min_index,max_index)
+
+    
+    
+    
 
 
 def report_metrics(cMats,labelarr,predarr,test_classCounts,TB=True,path='runs/'):

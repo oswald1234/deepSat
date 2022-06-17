@@ -102,8 +102,8 @@ class s2stats(Dataset):
     def open_h5(path,rgb = False):
         with h5py.File(path, 'r') as h5:
             img =torch.from_numpy(h5['raw'][:,:,:])
-          
-            return(img)
+            labl = torch.from_numpy(h5['train_id'][:,:].astype('float32'))
+            return(img,labl)
         
     
     def __init__(self,root_dir=None, ext='*.nc'):
@@ -114,8 +114,8 @@ class s2stats(Dataset):
         return len(self.patch_files)
 
     def __getitem__(self, idx):
-        img = self.open_h5(self.patch_files[idx])
-        return (img,self.patch_files[idx])
+        img,labl = self.open_h5(self.patch_files[idx])
+        return (img,labl,self.patch_files[idx])
     
     
 

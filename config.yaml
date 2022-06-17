@@ -9,7 +9,7 @@ config:
   tensorboard: true
 
   #how often to log to tensorboard in a training epoch, e.g. 0 = never , log for every 100th batch
-  log_intervall: 10
+  log_intervall: 20
   #to reproduce results, note that this only affects pytorch seed
   manual_seed: false
 
@@ -29,7 +29,7 @@ config:
 
 # parameters for  training
 train:
-  epochs: 75
+  epochs: 100
 
 # parameters for Dataset
 dataset: # dataset parameters
@@ -47,7 +47,7 @@ dataset: # dataset parameters
 
   test_kwargs: # parameters unique for test datataset
     # which data to use one of [test, train, ,val]
-    data: val
+    data: test
 
   val_kwargs: # parameters unique for val dataset
     # which data to use one of [test, train, ,val]
@@ -87,5 +87,5 @@ loss: # Parameters for loss function
     ignore_index: [0,21,22]
 
 cuda_kwargs: # GPU parameters
-  num_workers: 2
+  num_workers: 1
   pin_memory: true

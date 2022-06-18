@@ -37,7 +37,7 @@ dataset: # dataset parameters
     # root to dataset
     root_dir: processed-data/dsen_2_256_new_split
     # only use sentinel bands 4, 3 and 2
-    rgb: false
+    rgb: true
     # which timeperiod to use
     timeperiod: 1
 

@@ -38,7 +38,8 @@ def get_transforms(cfg):
  # initialize normalizer 
     pNorm = pNormalize(
         maxPer =quantiles['high'][str(cfg.dataset.kwargs.timeperiod)],
-        minPer =quantiles['low'][str(cfg.dataset.kwargs.timeperiod)]
+        minPer =quantiles['low'][str(cfg.dataset.kwargs.timeperiod)],
+        rgb = cfg.config.dataset.rgb
     )
 
     # img_transforms define transforms to apply on img only

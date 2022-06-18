@@ -81,9 +81,14 @@ def crossEntropyLossWeights(data_loader,n_classes=28):
     
 class pNormalize(object):
     
-    def __init__(self,minPer,maxPer):
-        self.minPer = minPer
-        self.maxPer = maxPer
+    def __init__(self,minPer,maxPer,rgb=False):
+        if not rgb:
+            self.minPer = minPer
+            self.maxPer = maxPer
+        else:
+            self.minPer = minPer[0:3]
+            self.maxPer = maxPer[0:3]
+        
     
     def __call__(self,sample):
             

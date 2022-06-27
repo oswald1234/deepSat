@@ -40,22 +40,60 @@ class sentinel(Dataset):
         cube =torch.cat((raw,labl),0)
         
         return(cube)
-        
     
+    @staticmethod
+    # raw = tensor with all spectral bands [bands, height, width] (raw data) 
+    def compute_spectral_indices(raw):
+        
+        #### Transformed Difference Vegetation Index (TDVI) ####
+        # NB! Is NOT a normalized index, so the scale of bands 4 and 8
+        # needs to be adjusted (factor: 0.0001)
+        B4 = torch.mul(raw[0], torch.tensor(0.0001, dtype = torch.float32))
+        B8 = torch.mul(raw[3], torch.tensor(0.0001, dtype = torch.float32))
+        
+        TDVI_num = torch.sub(B8, B4)
+        TDVI_denomPart = torch.add(torch.pow(B8, torch.tensor(2, dtype = torch.float32)), B4)
+        TDVI_denom = torch.sqrt(torch.add(TDVI_denomPart, torch.tensor(0.5, dtype = torch.float32)))
+
+        TDVI = torch.mul(torch.tensor(1.5, dtype = torch.float32), torch.div(TDVI_num, TDVI_denom))
+        
+        #### Enhanced Normalized Difference Impervious Surfaces Index (ENDISI) ####
+        B2 = raw[2]
+        B3 = raw[1]
+        B11 = raw[8]
+        B12 = raw[9]
+        
+        MNDWI = torch.div(torch.sub(B3, B11), torch.add(B3, B11))
+
+        alpha_num = torch.mul(torch.tensor(2, dtype = torch.float32), torch.mean(B2))
+        alpha_denom = torch.add(torch.mean(torch.div(B11, B12)), torch.mean(torch.pow(MNDWI, torch.tensor(2, dtype = torch.float32))))
+        alpha = torch.div(alpha_num, alpha_denom)
+
+        ENDISI_eqPart = torch.add(torch.div(B11, B12), torch.pow(MNDWI, torch.tensor(2, dtype = torch.float32))) 
+        ENDISI_num = torch.sub(B2, torch.mul(alpha, ENDISI_eqPart))
+        ENDISI_denom = torch.add(B2, torch.mul(alpha, ENDISI_eqPart))
+        ENDISI = torch.div(ENDISI_num, ENDISI_denom)
+
+        return(TDVI, ENDISI)
+        
     @staticmethod 
     def open_h5(self,idx):
         with h5py.File(self.patch_files[idx], 'r') as h5:
             labl = torch.from_numpy(h5['train_id'][:,:].astype('float32'))
             #labl = torch.from_numpy(self.map_id(h5['class_code'][:,:]))
         
-            
             if self.rgb:
                 raw = torch.tensor(h5['raw'][0:3,:,:],dtype=torch.float32)
+            # RGB + spectral indicies    
+            elif self.rgbsi:
+                raw = torch.tensor(h5['raw'][:,:,:],dtype=torch.float32)
+                tdvi, endisi = self.compute_spectral_indices(raw)
+                RGB = raw[0:3,:,:]  
+                raw = torch.cat((RGB, tdvi.unsqueeze(0), endisi.unsqueeze(0)), dim = 0)
             else:
                 raw = torch.tensor(h5['raw'][:,:,:],dtype=torch.float32)
             return(self.make_cube(raw,labl))
           
-    
     @staticmethod
     # Apply transformations on cube (images and labels) and on images
     def transform(self,cube):

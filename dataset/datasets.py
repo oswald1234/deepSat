@@ -112,7 +112,7 @@ class sentinel(Dataset):
            
             return(raw,labl)
     
-    def __init__(self,transforms=None, img_transform=None,root_dir=None, timeperiod=1,data='train', ext='*.nc',rgb=False):
+    def __init__(self,transforms=None, img_transform=None,root_dir=None, timeperiod=1,data='train', ext='*.nc',rgb=False, rgbsi=False):
         self.data=data # one of test, train or val
         self.root_dir = os.path.join(root_dir,'timeperiod{}'.format(timeperiod),self.data)  #dataset dir
         self.timeperiod = timeperiod
@@ -120,6 +120,7 @@ class sentinel(Dataset):
         self.img_transform = img_transform
         self.transforms = transforms
         self.rgb = rgb
+        self.rgbsi = rgbsi
         self.map_id = np.vectorize(self.map_train_id)
 
     # return length of dataset

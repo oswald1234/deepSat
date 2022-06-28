@@ -285,7 +285,14 @@ def get_savedir(cfg):
                                         CE='WCE' if cfg.loss.crossEntropy.weighted else 'CE',
                                         ftl= '_FTL' if cfg.loss.use_focal_tversky else ''
                                        )
-        band='rgb' if cfg.dataset.kwargs.rgb else 'all'
+        
+        if cfg.dataset.kwargs.rgb:
+            band = 'rgb'
+        elif cfg.dataset.kwargs.rgbsi:
+            band = 'rgbsi'
+        else:
+            band = 'all'
+        
         savedir = 'runs/{loss}_{epochs}_epochs_{band}_bands_TP{timeperiod}_{timestamp}'.format(loss=loss,
                                                                                epochs = cfg.train.epochs,
                                                                                band=band,

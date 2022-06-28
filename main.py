@@ -39,7 +39,8 @@ def get_transforms(cfg):
     pNorm = pNormalize(
         maxPer =quantiles['high'][str(cfg.dataset.kwargs.timeperiod)],
         minPer =quantiles['low'][str(cfg.dataset.kwargs.timeperiod)],
-        rgb = cfg.dataset.kwargs.rgb
+        rgb = cfg.dataset.kwargs.rgb,
+        rgbsi= cfg.dataset.kwargs.rgbsi
     )
 
     # img_transforms define transforms to apply on img only
@@ -178,6 +179,8 @@ def main():
     
     # batch sample
     img, labl = iter(training_loader).next()
+    
+    print(img.shape)
 
     # Define model
     model = UNET(in_channels=img.shape[1],classes=nClasses).to(device)

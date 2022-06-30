@@ -298,7 +298,7 @@ def printClassMetrics(metrics,classCounts,TB=False,title="Class_Metrics",path="r
         
         for l, v in d.items():
             p, acc, prc, rcl, f1s, iou, mcc, dsc, ua = v
-            print ("{:<8} {:<15} {:<10.2f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10}".format(
+            print ("{:<8} {:<15} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10}".format(
                 l+1, ua, p, acc, prc, rcl, f1s, iou, mcc, dsc))
             lines.append("{:<8} {:<15} {:<10.2f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10}".format(
                 l+1, ua, p, acc, prc, rcl, f1s, iou, mcc, dsc))
@@ -428,7 +428,7 @@ def plotConfusionMatrices(cMats, TB=False,title="Confusion_Matrices",path="runs/
     for row in axes:
         for col in row:
             group_counts = ["{:,}".format(value) for value in cMats[counter].flatten()]
-            group_percentages = ["{0:.2%}".format(value) for value in cMats[counter].flatten()/cMats[counter].sum()]
+            group_percentages = ["{0:.4%}".format(value) for value in cMats[counter].flatten()/cMats[counter].sum()]
             labels2 = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(group_names,group_counts,group_percentages)]
             labels2 = np.asarray(labels2).reshape(2,2)
 

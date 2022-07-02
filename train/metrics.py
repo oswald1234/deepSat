@@ -300,7 +300,7 @@ def printClassMetrics(metrics,classCounts,TB=False,title="Class_Metrics",path="r
             p, acc, prc, rcl, f1s, iou, mcc, dsc, ua = v
             print ("{:<8} {:<15} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10}".format(
                 l+1, ua, p, acc, prc, rcl, f1s, iou, mcc, dsc))
-            lines.append("{:<8} {:<15} {:<10.2f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10}".format(
+            lines.append("{:<8} {:<15} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10.4f} {:<10}".format(
                 l+1, ua, p, acc, prc, rcl, f1s, iou, mcc, dsc))
 
         with open(os.path.join(path,'metrics.txt'), 'a') as f:

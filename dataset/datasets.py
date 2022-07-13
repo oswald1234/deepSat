@@ -18,6 +18,8 @@ from torch.utils.data import Dataset
 # 'SRB11 (1610 nm)',
 # 'SRB12 (2190 nm)')
 
+
+
    
     
 class sentinel(Dataset):
@@ -75,28 +77,71 @@ class sentinel(Dataset):
         ENDISI = torch.div(ENDISI_num, ENDISI_denom)
 
         return(TDVI, ENDISI)
-        
+    
+    @staticmethod
+    def open_raw_s2(self,idx):
+        with h5py.File(self.s2_patch_paths[idx],'r') as h5:
+            raw=torch.tensor(h5['raw'][:,:,:],dtype=torch.float32)
+        return(raw)
+    
+    @staticmethod
+    def get_rgbsi(self,raw): #raw
+        tdvi, endisi = self.compute_spectral_indices(raw)
+        RGB = raw[0:3,:,:].clone().detach() 
+        raw = torch.cat((RGB, tdvi.unsqueeze(0), endisi.unsqueeze(0)), dim = 0)
+        return(raw)
+    
+    @staticmethod
+    def get_rgb(self,raw):
+        raw=raw[0:3,:,:].clone().detach()
+        return (raw)
+    
+    
+    @staticmethod
+    def get_rgbrsi(self,raw_s1,raw_s2):
+        rgb=self.get_rgb(self,raw_s2)
+        tdvi, endisi = self.compute_spectral_indices(raw_s2)
+        rgbrsi = torch.cat((rgb,raw_s1,tdvi.unsqueeze(0),endisi.unsqueeze(0)), dim = 0)
+        return (rgbrsi)
+    
+
     @staticmethod 
     def open_h5(self,idx):
         with h5py.File(self.patch_files[idx], 'r') as h5:
             labl = torch.from_numpy(h5['train_id'][:,:].astype('float32'))
+            raw = torch.tensor(h5['raw'][:,:,:],dtype=torch.float32)
             #labl = torch.from_numpy(self.map_id(h5['class_code'][:,:]))
-        
-            if self.rgb:
-                raw = torch.tensor(h5['raw'][0:3,:,:],dtype=torch.float32)
-            # RGB + spectral indicies    
-            elif self.rgbsi:
-                raw = torch.tensor(h5['raw'][:,:,:],dtype=torch.float32)
-                tdvi, endisi = self.compute_spectral_indices(raw)
-                RGB = raw[0:3,:,:]  
-                raw = torch.cat((RGB, tdvi.unsqueeze(0), endisi.unsqueeze(0)), dim = 0)
-            else:
-                raw = torch.tensor(h5['raw'][:,:,:],dtype=torch.float32)
+            
+            # RGB Bands, root_dir=path_to_s2_data, RGB=True
+            if self.rgb: 
+                raw = self.get_rgb(self,raw)
+     
+            # RGB + spectral indicies      RGBSI = True    
+            elif self.rgbsi: # root_dir = path_to_s2_data, rgbsi=True
+                raw=self.get_rgbsi(self,raw)
+            
+            # RGB + Radar, root_dir=path_to_s1_data, rgbr=True
+            elif self.rgbr:
+                rgb = self.get_rgb(self,self.open_raw_s2(self,idx))
+                raw = torch.cat((rgb,raw),dim=0)
+                
+            # RGB + spectral indices + Radar                    
+            elif self.rgbrsi:
+                raw=self.get_rgbrsi(self,raw,self.open_raw_s2(self,idx))
+                
+               
+                
+             # radar(S1 2 bands) only or (S2 10 bands) if rgbr =rgbsir =rgb=rgbsi=False 
+             # with corresponding s2 data
+    
+            #else:
+            #    raw = torch.tensor(h5['raw'][:,:,:],dtype=torch.float32)
             return(self.make_cube(raw,labl))
           
     @staticmethod
     # Apply transformations on cube (images and labels) and on images
     def transform(self,cube):
+        
             # do transformations applied on both img and label (eg rotations/flips)
             if self.transforms:
                 self.transforms(cube)
@@ -111,8 +156,25 @@ class sentinel(Dataset):
                 raw = self.img_transform(raw)
            
             return(raw,labl)
+     
+    @staticmethod
+    # find corresponding S2 patches
+    def find_s2_patches(self):
+        df = self.patch_files
+        df_2 = []
+        for path in df:
+            patch = os.path.split(path)[-1].split('_')
+            patch_id='_'.join(patch[0:2])
+            tile = patch[2]
+            fn = '{}_T{}_*.nc'.format(patch_id,tile)
+            src=os.path.join('processed-data/dsen_2_256_new_split/timeperiod{}/{}/'.format(self.timeperiod,self.data),fn)
+            new_path  = glob.glob(src)
+        
+            if len(new_path)!=0:       
+                df_2.append(new_path[0])
+        return(df_2)
     
-    def __init__(self,transforms=None, img_transform=None,root_dir=None, timeperiod=1,data='train', ext='*.nc',rgb=False, rgbsi=False):
+    def __init__(self,transforms=None, img_transform=None,root_dir=None, timeperiod=1,data='train', ext='*.nc',rgb=False, rgbsi=False,rgbr=False,rgbrsi=False):
         self.data=data # one of test, train or val
         self.root_dir = os.path.join(root_dir,'timeperiod{}'.format(timeperiod),self.data)  #dataset dir
         self.timeperiod = timeperiod
@@ -121,7 +183,13 @@ class sentinel(Dataset):
         self.transforms = transforms
         self.rgb = rgb
         self.rgbsi = rgbsi
+        self.rgbr=rgbr
+        self.rgbrsi = rgbrsi
         self.map_id = np.vectorize(self.map_train_id)
+        
+        if (self.rgbrsi or self.rgbr):
+            self.s2_patch_paths=self.find_s2_patches(self)
+        
 
     # return length of dataset
     def __len__(self):
@@ -133,6 +201,9 @@ class sentinel(Dataset):
         raw,labl = self.transform(self,cube)
 
         return (raw,labl) 
+    
+    
+    
     
 
 class s2stats(Dataset):
@@ -157,5 +228,24 @@ class s2stats(Dataset):
         return (img,labl,self.patch_files[idx])
     
     
+class s1stats(Dataset):
+    
+    @staticmethod 
+    def open_h5(path,rgb = False):
+        with h5py.File(path, 'r') as h5:
+            img =torch.from_numpy(h5['raw'][:,:,:])
+            labl = torch.from_numpy(h5['train_id'][:,:].astype('float32'))
+            return(img,labl)
+        
+    
+    def __init__(self,root_dir=None, ext='*.nc'):
+        self.root_dir = root_dir #dataset dir
+        self.patch_files = glob.glob(os.path.join(self.root_dir, ext))
+        
+    def __len__(self):
+        return len(self.patch_files)
 
+    def __getitem__(self, idx):
+        img,labl = self.open_h5(self.patch_files[idx])
+        return (img,labl,self.patch_files[idx])
     

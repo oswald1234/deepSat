@@ -599,7 +599,7 @@ def plot_confusion_matrix(cm,
 # fig_scale  = for size scaling of figures
 # path        = Path-string, where to save figure, if save_fig = True
 
-def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,path=None,fn='sample.png',dpi=150):
+def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,path=None,fn='sample.png',dpi=150,source='S2'):
     
     corrPred=torch.eq(pred,labl)
     predratio = torch.sum(corrPred)/corrPred.numel()*100
@@ -622,9 +622,16 @@ def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,p
         }
 
     fig, axs =plt.subplots(nrow,ncol,gridspec_kw=gridspec_kw , **fig_kw)
+    
+    if source =='S1':
+        img = rgb[0,:,:].cpu().numpy()
+    else:
+        img = rgb[0:3,:,:].permute(1,2,0).cpu().numpy()
+        
+    
 
     # Adds a subplot at the 1st column
-    axs[0].imshow(rgb.permute(1,2,0).cpu().numpy())
+    axs[0].imshow(img)
     axs[0].axis('off')
     axs[0].set_title('RGB')
     axs[0].set_xticklabels([])
@@ -678,7 +685,7 @@ def plot_sample(pred,labl,rgb,classMax=27,classMin=0,fig_scale=3,save_fig=True,p
 # classMin   = lowest class value (0)
 # fig_scale  = for size scaling of figures
 # path        = Path-string, where to save figure, if save_fig = True
-def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,path=None,fn='batch_sample.png',dpi=150):
+def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,path=None,fn='batch_sample.png',dpi=150,source='S2'):
     
     # correct predicted % per patch
     predRatio = torch.sum(torch.eq(pred,labl),dim=[1,2])/pred[0,:,:].numel()*100
@@ -707,8 +714,16 @@ def plot_batch(pred,labl,rgb,classMax=27,classMin=0,fig_scale=1,save_fig=True,pa
     fig, axs =plt.subplots(nrow+1,ncol, gridspec_kw=gridspec_kw , **fig_kw)
 
     for i in range(nrow):
+        
+        if source =='S1':
+            img = rgb[i,0,:,:].cpu().numpy()
+        else:
+            img = rgb[i,0:3,:,:].permute(1,2,0).cpu().numpy()
+        
+  
+            
         # Adds a subplot at the 1st column
-        axs[i,0].imshow(rgb[i,0:3,:,:].permute(1,2,0).cpu().numpy())
+        axs[i,0].imshow(img)
         axs[i,0].axis('off')
         axs[i,0].set_xticklabels([])
         axs[i,0].set_yticklabels([])

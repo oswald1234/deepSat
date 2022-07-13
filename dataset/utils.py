@@ -81,28 +81,41 @@ def crossEntropyLossWeights(data_loader,n_classes=28):
     
 class pNormalize(object):
     
-    def __init__(self,minPer,maxPer,rgb=False,rgbsi=False):
-        self.rgb=rgb
+    def __init__(self,minPer,maxPer,rgbrsi=False,rgbsi=False):
+        #self.rgb=rgb
         self.rgbsi=rgbsi
+        self.rgbrsi=rgbrsi
         self.minPer = minPer
         self.maxPer = maxPer
         
     
     def __call__(self,sample):
         
-    
+        # do not normalize spectral indicies
         if self.rgbsi:
             si = sample[3:5,:,:]
             sample = sample[0:3].permute(2,1,0)
             norm = (sample-self.minPer[0:3])/(self.maxPer[0:3]-self.minPer[0:3])
             norm = torch.cat((norm.permute(2,1,0),si), dim=0)
+        elif self.rgbrsi:
+            si = sample[5:7,:,:]
+            sample = sample[0:5].permute(2,1,0)
+            norm = (sample-self.minPer[0:5])/(self.maxPer[0:5]-self.minPer[0:5])
+            norm = torch.cat((norm.permute(2,1,0),si), dim=0)
+        
         
             
         else:
             
-            if self.rgb:    
-                self.minPer = self.minPer[0:3]
-                self.maxPer = self.maxPer[0:3]
+            # only normalize rgb bands
+            #if self.rgb:    
+            #    self.minPer = self.minPer[0:3]
+            #    self.maxPer = self.maxPer[0:3]
+                
+            #if self.rgbr:
+            #    self.minPer = self.minPer[0:5]
+            #    self.maxPer = self.maxPer[0:5]
+                
         
             # According to https://github.com/charlotte-pel/temporalCNN
             sample = sample.permute(2,1,0)

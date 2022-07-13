@@ -143,7 +143,12 @@ def eval(cfg,best_model,device,test_loader,test_classCounts):
             
             cMats += computeConfMats(labels.cpu(),preds.cpu())
             
-            plots(preds,labels,images,savedir=cfg.config.savedir, idx=ii)
+            if cfg.dataset.source=='S1' and not (cfg.dataset.kwargs.rgbr or cfg.dataset.kwargs.rgbrsi):
+                source='S1'
+            else:
+                source='S2'
+            
+            plots(preds,labels,images,savedir=cfg.config.savedir, idx=ii,source=source)
             
             
     labels,preds,images = labels.cpu(),preds.cpu(),images.cpu()
@@ -153,26 +158,26 @@ def eval(cfg,best_model,device,test_loader,test_classCounts):
  
 ####### help functions ########
 
-def plots(preds,labels,images, savedir, idx=None):
+def plots(preds,labels,images, savedir, idx=None,source='S2'):
 
     #plot batch  
     plot_batch(preds,labels,images,
                 path=os.path.join(savedir,'pred_figures/batch'),
                 fn='batch_{}'.format(idx),
-              dpi=300)
+              dpi=300, source=source)
             
     # get best and worst pred of batch 
     min_index,max_index = get_min_max_pred(preds,labels)
             
     # plot best and worst sample 
-    plot_sample(preds[min_index,:,:],labels[min_index,:,:], images[min_index,0:3,:,:],
+    plot_sample(preds[min_index,:,:],labels[min_index,:,:], images[min_index,:,:,:],
                 path=os.path.join(savedir,'pred_figures/BW_batch'),
                 fn='batch_{}_worst.png'.format(idx),
-               dpi=256) 
-    plot_sample(preds[max_index,:,:],labels[max_index,:,:], images[max_index,0:3,:,:],
+               dpi=256,source=source) 
+    plot_sample(preds[max_index,:,:],labels[max_index,:,:], images[max_index,:,:,:],
                         path=os.path.join(savedir,'pred_figures/BW_batch'),
                         fn='batch_{}_best.png'.format(idx),
-                        dpi=256)
+                        dpi=256,source=source)
             
 
 ## get_min_max_pred()
@@ -285,13 +290,24 @@ def get_savedir(cfg):
                                         CE='WCE' if cfg.loss.crossEntropy.weighted else 'CE',
                                         ftl= '_FTL' if cfg.loss.use_focal_tversky else ''
                                        )
-        
-        if cfg.dataset.kwargs.rgb:
-            band = 'rgb'
-        elif cfg.dataset.kwargs.rgbsi:
-            band = 'rgbsi'
-        else:
-            band = 'all'
+        if cfg.dataset.source == 'S2':
+            
+            if cfg.dataset.kwargs.rgb:
+                band = 'rgb'
+            elif cfg.dataset.kwargs.rgbsi:
+                band = 'rgbsi'
+            else:
+                band = 'all_S2'
+                
+        if cfg.dataset.source == 'S1':
+            
+            if cfg.dataset.kwargs.rgbr:
+                band= 'rgbr'
+            elif cfg.dataset.kwargs.rgbrsi:
+                band= 'rgbrsi'
+            else:
+                band= 'all_S1'
+            
         
         savedir = 'runs/{loss}_{epochs}_epochs_{band}_bands_TP{timeperiod}_{timestamp}'.format(loss=loss,
                                                                                epochs = cfg.train.epochs,

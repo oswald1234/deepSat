@@ -33,13 +33,25 @@ train:
 
 # parameters for Dataset
 dataset: # dataset parameters
+  # S1 or S2
+  source: 'S1'
   kwargs: # to both train and test dataset
     # root to dataset
-    root_dir: processed-data/dsen_2_256_new_split
-    # only use sentinel bands 4, 3 and 2
+    # when using Sentinel-2:
+    #root_dir: processed-data/dsen_2_256_new_split
+    # when using Sentinel-1:
+    root_dir: processed-data/sentinel_1_256_split
+    
+    # Set ONE of following (rgb,rgbsi,rgbr,rgbrsi) to true to train corresponding band.
+    # if all is false all sentinel-2 or sentinel-1 bands are used for training
+    # only use RGB (sentinel bands 4, 3 and 2)
     rgb: false
-    # spectral indices
-    rgbsi: true
+    # RGB + spectral indices
+    rgbsi: false
+    # RGB + Radar
+    rgbr: false
+    # RGB + Radar + Spectral Indicies
+    rgbrsi: true
     # which timeperiod to use
     timeperiod: 1
 

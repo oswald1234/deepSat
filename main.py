@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
 from dataset.datasets import sentinel
-from dataset.stats import quantiles,ce_weights, classCounts
+from dataset.stats import quantiles,ce_weights, classCounts, quantiles_s1,classCounts_s1
 
 from preprocess.classDict import   class_dict
 from dataset.utils import pNormalize, crossEntropyLossWeights, classCount
@@ -34,12 +34,33 @@ import munch
 
 def get_transforms(cfg):
     
+    s2_maxPer = quantiles['high'][str(cfg.dataset.kwargs.timeperiod)]
+    s2_minPer = quantiles['low'][str(cfg.dataset.kwargs.timeperiod)]
+    
+    if cfg.dataset.source=='S1':
+        
+        maxPer = quantiles_s1['high'][str(cfg.dataset.kwargs.timeperiod)]
+        minPer = quantiles_s1['low'][str(cfg.dataset.kwargs.timeperiod)]
+        
+        if cfg.dataset.kwargs.rgbrsi or cfg.dataset.kwargs.rgbr:
+            maxPer= torch.cat((s2_maxPer[0:3],maxPer),dim=0)
+            minPer =torch.cat((s2_minPer[0:3],minPer), dim=0)
+
+            
+    elif cfg.dataset.source=='S2':
+        maxPer=s2_maxPer
+        minPer=s2_minPer
+        
+        if cfg.dataset.kwargs.rgbsi or cfg.dataset.kwargs.rgb:
+            maxPer=s2_maxPer[0:3]
+            minPer=s2_minPer[0:3]
+        
     
  # initialize normalizer 
     pNorm = pNormalize(
-        maxPer =quantiles['high'][str(cfg.dataset.kwargs.timeperiod)],
-        minPer =quantiles['low'][str(cfg.dataset.kwargs.timeperiod)],
-        rgb = cfg.dataset.kwargs.rgb,
+        maxPer =maxPer,
+        minPer =minPer,
+        rgbrsi = cfg.dataset.kwargs.rgbrsi,
         rgbsi= cfg.dataset.kwargs.rgbsi
     )
 

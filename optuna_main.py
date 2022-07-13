@@ -167,7 +167,7 @@ def train(cfg, model, device, train_loader, optimizer, loss_ce, loss_ftl, epoch,
             )
             if np.isnan(last_loss):
                 break
-            if epoch_perc > 50:
+            if epoch_perc > 25:
                 break
    
             # prediction for IOU 
@@ -397,23 +397,23 @@ if __name__ == '__main__':
                                 pruner=pruner
                                )
                                 
-    study.enqueue_trial(
-        {
-            "lr": 1e-4,
-            "alpha": 0.7,
-            "gamma": 1.33
-        }
-        )
+    #study.enqueue_trial(
+    #    {
+    #        "lr": 1e-4,
+    #        "alpha": 0.7,
+    #        "gamma": 1.33
+    #    }
+    #    )
     
-    study.enqueue_trial(
-        {
-            "lr": 1e-4,
-            "alpha": 0.7,
-            "gamma": 0.75
-        }
-        )
+    #study.enqueue_trial(
+     #   {
+     #       "lr": 1e-4,
+     #       "alpha": 0.7,
+     #       "gamma": 0.75
+     #   }
+     #   )
     
-    study.optimize(objective,n_trials=2  )
+    study.optimize(objective,n_trials=40 )
     
     pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
     complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])

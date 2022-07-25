@@ -179,6 +179,7 @@ class sentinel(Dataset):
         self.root_dir = os.path.join(root_dir,'timeperiod{}'.format(timeperiod),self.data)  #dataset dir
         self.timeperiod = timeperiod
         self.patch_files = glob.glob(os.path.join(self.root_dir, ext))
+        self.patch_files.sort() # .glob() sorts arbitrarily, for late fusion to work correctly, the same sorting must be applied
         self.img_transform = img_transform
         self.transforms = transforms
         self.rgb = rgb
